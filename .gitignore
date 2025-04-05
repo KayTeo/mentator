@@ -54,6 +54,3 @@ logs
 
 # Cache
 .cache/
-
-#node modules
-.node_modules/
