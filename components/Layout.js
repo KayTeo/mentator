@@ -33,6 +33,9 @@ export default function Layout({ children }) {
                   <Link href="/decks" className="text-gray-600 hover:text-primary-600 transition-colors">
                     My Decks
                   </Link>
+                  <Link href="/cards/add" className="text-gray-600 hover:text-primary-600 transition-colors">
+                    Add Cards
+                  </Link>
                   <Link href="/study" className="text-gray-600 hover:text-primary-600 transition-colors">
                     Study
                   </Link>
@@ -113,7 +116,7 @@ export default function Layout({ children }) {
           </div>
           
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-gray-500">
-            <p>© {new Date().getFullYear()} Mentator. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Mentator. All rights reserved.</p>
           </div>
         </div>
       </footer>
