@@ -103,6 +103,12 @@ export default function Dashboard() {
             <div className="flex space-x-3">
               <button 
                 className="btn-secondary"
+                onClick={() => router.push('/cards/generate')}
+              >
+                Generate Cards
+              </button>
+              <button 
+                className="btn-secondary"
                 onClick={() => router.push('/cards/add')}
               >
                 Add Cards

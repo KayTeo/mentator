@@ -36,6 +36,9 @@ export default function Layout({ children }) {
                   <Link href="/cards/add" className="text-gray-600 hover:text-primary-600 transition-colors">
                     Add Cards
                   </Link>
+                  <Link href="/cards/generate" className="text-gray-600 hover:text-primary-600 transition-colors">
+                    Generate Cards
+                  </Link>
                   <Link href="/study" className="text-gray-600 hover:text-primary-600 transition-colors">
                     Study
                   </Link>
