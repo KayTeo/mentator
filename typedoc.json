@@ -1,0 +1,13 @@
+{
+  "entryPoints": ["src/**/*.ts", "src/**/*.tsx"],
+  "out": "docs",
+  "exclude": ["**/node_modules/**", "**/*.test.ts", "**/*.test.tsx"],
+  "theme": "default",
+  "name": "Mentator Documentation",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "categoryOrder": ["Components", "Hooks", "Utils", "*"]
+} 
