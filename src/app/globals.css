@@ -24,3 +24,27 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Placeholder text styling */
+::placeholder {
+  color: #6B7280 !important; /* text-gray-500 */
+  opacity: 1 !important;
+}
+
+/* For Firefox */
+::-moz-placeholder {
+  color: #6B7280 !important;
+  opacity: 1 !important;
+}
+
+/* For Edge */
+::-ms-input-placeholder {
+  color: #6B7280 !important;
+  opacity: 1 !important;
+}
+
+/* For IE */
+:-ms-input-placeholder {
+  color: #6B7280 !important;
+  opacity: 1 !important;
+}

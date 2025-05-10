@@ -2,61 +2,82 @@
 
 import { Button } from './Button';
 import Link from 'next/link';
-
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 
-export function Header() {
-  
-  const user = "Placeholder"
-  //TODO: Add either user context or supabase auth
+interface HeaderProps {
+  title: string;
+  description?: string;
+}
+
+export function Header({}: HeaderProps) {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
+  if (!user) {
+    return null;
+  }
 
   return (
-    <header className="border-b">
+    <header className="border-b bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
+            <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
               Mentator
             </Link>
           </div>
           <nav className="hidden md:flex space-x-8">
-            <Link href="#Study" className="text-gray-600 hover:text-gray-900">Study</Link>
-            <Link href="#Add Cards" className="text-gray-600 hover:text-gray-900">Add Cards</Link>
-            <Link href="#Manage Decks" className="text-gray-600 hover:text-gray-900">Manage Decks</Link>
-            {user && (
-              <>
-                <Link href="/data-points/new" className="text-gray-600 hover:text-gray-900">
-                  Add Data Point
-                </Link>
-                <Link href="/datasets" className="text-gray-600 hover:text-gray-900">
-                  Datasets
-                </Link>
-              </>
-            )}
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
+            <Link href="/study" className="text-gray-600 hover:text-gray-900">Study</Link>
+            <Link href="/add_data" className="text-gray-600 hover:text-gray-900">Add Data</Link>
+            <Link href="/manage_decks" className="text-gray-600 hover:text-gray-900">Manage Decks</Link>
           </nav>
           <div className="flex items-center space-x-4">
-            {user ? (
-              <>
-                <span className="text-gray-600">{user.email}</span>
-                <Button variant="outline" onClick={() => signOut()}>
+            <div className="relative group">
+              <button className="flex items-center space-x-2 text-gray-600 hover:text-gray-900">
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-blue-600 font-medium">
+                    {user.email?.[0].toUpperCase()}
+                  </span>
+                </div>
+                <span className="hidden md:inline-block">{user.email}</span>
+              </button>
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
+                <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Profile
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                >
                   Sign Out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/signin">
-                  <Button variant="outline">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button variant="primary">
-                    Get Started
-                  </Button>
-                </Link>
-              </>
-            )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

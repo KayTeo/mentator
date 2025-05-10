@@ -62,16 +62,19 @@ export interface Database {
         Row: {
           dataset_id: string
           data_point_id: string
+          metadata: Json
           created_at: string
         }
         Insert: {
           dataset_id: string
           data_point_id: string
+          metadata?: Json
           created_at?: string
         }
         Update: {
           dataset_id?: string
           data_point_id?: string
+          metadata?: Json
           created_at?: string
         }
       }

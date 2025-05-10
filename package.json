@@ -11,9 +11,12 @@
     "docs:watch": "typedoc --watch"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.4",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.509.0",
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
