@@ -125,7 +125,7 @@ export default function AddDataPage() {
                 value={selectedDataset}
                 onChange={(e) => {
                   if (e.target.value === 'create') {
-                    router.push('/manage_decks')
+                    router.push('/manage_datasets')
                   } else {
                     setSelectedDataset(e.target.value)
                   }

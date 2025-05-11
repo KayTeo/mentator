@@ -86,7 +86,6 @@ export function NormalStudy() {
     }
 
     fetchDatasets();
-    console.log(error);
   }, [supabase]);
 
   // Fetch data points when a dataset is selected
@@ -159,7 +158,6 @@ export function NormalStudy() {
         .update({ metadata: { ...currentPoint.metadata, loss_value: lossValue } })
         .eq('dataset_id', selectedDatasetId)
         .eq('data_point_id', currentPoint.id);
-
       if (updateError) throw updateError;
 
       // Update local state
@@ -176,6 +174,7 @@ export function NormalStudy() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update difficulty');
     }
+    
   };
 
   return (

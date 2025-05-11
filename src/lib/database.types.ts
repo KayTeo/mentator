@@ -20,6 +20,9 @@ export interface Database {
           email: string
           display_name: string | null
           avatar_url: string | null
+          provider: string | null
+          provider_id: string | null
+          last_sign_in_at: string | null
           created_at: string
           updated_at: string
         }
@@ -28,6 +31,9 @@ export interface Database {
           email: string
           display_name?: string | null
           avatar_url?: string | null
+          provider?: string | null
+          provider_id?: string | null
+          last_sign_in_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -36,6 +42,9 @@ export interface Database {
           email?: string
           display_name?: string | null
           avatar_url?: string | null
+          provider?: string | null
+          provider_id?: string | null
+          last_sign_in_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -44,6 +53,111 @@ export interface Database {
             foreignKeyName: "profiles_id_fkey"
             columns: ["id"]
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      data_points: {
+        Row: {
+          id: string
+          user_id: string
+          content: string
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content?: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_points_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      datasets: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "datasets_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      dataset_data_points: {
+        Row: {
+          dataset_id: string
+          data_point_id: string
+          metadata: Json | null
+          label: string | null
+          created_at: string
+        }
+        Insert: {
+          dataset_id: string
+          data_point_id: string
+          metadata?: Json | null
+          label?: string | null
+          created_at?: string
+        }
+        Update: {
+          dataset_id?: string
+          data_point_id?: string
+          metadata?: Json | null
+          label?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dataset_data_points_dataset_id_fkey"
+            columns: ["dataset_id"]
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dataset_data_points_data_point_id_fkey"
+            columns: ["data_point_id"]
+            referencedRelation: "data_points"
             referencedColumns: ["id"]
           }
         ]

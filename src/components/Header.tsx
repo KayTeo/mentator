@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from './Button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
@@ -54,7 +53,8 @@ export function Header({}: HeaderProps) {
             <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
             <Link href="/study" className="text-gray-600 hover:text-gray-900">Study</Link>
             <Link href="/add_data" className="text-gray-600 hover:text-gray-900">Add Data</Link>
-            <Link href="/manage_decks" className="text-gray-600 hover:text-gray-900">Manage Decks</Link>
+            <Link href="/manage_datasets" className="text-gray-600 hover:text-gray-900">Manage Datasets</Link>
+            <Link href="/view_dataset" className="text-gray-600 hover:text-gray-900">View Dataset</Link>
           </nav>
           <div className="flex items-center space-x-4">
             <div className="relative group">

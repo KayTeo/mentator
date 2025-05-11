@@ -11,7 +11,7 @@ type Dataset = Database['public']['Tables']['datasets']['Row'] & {
   dataset_data_points: { data_point_id: string }[]
 }
 
-export default function ManageDecksPage() {
+export default function ManageDatasetsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [datasets, setDatasets] = useState<Dataset[]>([])
@@ -120,16 +120,16 @@ export default function ManageDecksPage() {
       <Header />
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Manage Decks</h1>
+          <h1 className="text-3xl font-bold">Manage Datasets</h1>
         </div>
 
         {/* Create New Dataset Form */}
         <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Create New Deck</h2>
+          <h2 className="text-xl font-semibold mb-4">Create New Dataset</h2>
           <form onSubmit={handleCreateDataset} className="space-y-4">
             <div>
               <label htmlFor="datasetName" className="block text-sm font-medium text-gray-700 mb-1">
-                Deck Name
+                Dataset Name
               </label>
               <input
                 type="text"
@@ -137,7 +137,7 @@ export default function ManageDecksPage() {
                 value={newDatasetName}
                 onChange={(e) => setNewDatasetName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter deck name"
+                placeholder="Enter dataset name"
                 required
               />
             </div>
@@ -151,7 +151,7 @@ export default function ManageDecksPage() {
                 onChange={(e) => setNewDatasetDescription(e.target.value)}
                 rows={5}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter deck description"
+                placeholder="Enter dataset description"
               />
             </div>
             <button
@@ -159,7 +159,7 @@ export default function ManageDecksPage() {
               disabled={creatingDataset || !newDatasetName.trim()}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {creatingDataset ? 'Creating...' : 'Create Deck'}
+              {creatingDataset ? 'Creating...' : 'Create Dataset'}
             </button>
           </form>
         </div>
@@ -174,12 +174,12 @@ export default function ManageDecksPage() {
         {/* Dataset List */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold">Your Decks</h2>
+            <h2 className="text-xl font-semibold">Your Datasets</h2>
           </div>
           <div className="divide-y divide-gray-200">
             {datasets.length === 0 ? (
               <div className="px-6 py-4 text-gray-700 text-center">
-                No decks created yet. Create your first deck above!
+                No datasets created yet. Create your first dataset above!
               </div>
             ) : (
               datasets.map((dataset) => (
