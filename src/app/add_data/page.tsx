@@ -15,8 +15,10 @@ export default function AddDataPage() {
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [selectedDataset, setSelectedDataset] = useState<string>('')
   const [content, setContent] = useState('')
+  const [label, setLabel] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -53,7 +55,7 @@ export default function AddDataPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !selectedDataset || !content.trim()) return
+    if (!user || !selectedDataset || !content.trim() || !label.trim()) return
 
     setSubmitting(true)
     setError(null)
@@ -76,15 +78,18 @@ export default function AddDataPage() {
         .from('dataset_data_points')
         .insert({
           dataset_id: selectedDataset,
-          data_point_id: dataPoint.id
+          data_point_id: dataPoint.id,
+          label: label.trim()
         })
 
       if (associationError) throw associationError
 
       // Reset form
       setContent('')
-      setSelectedDataset('')
-      alert('Data point added successfully!')
+      setLabel('')
+      setSuccess('Data point added successfully!')
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       console.error('Error adding data point:', err)
       setError('Failed to add data point. Please try again.')
@@ -99,7 +104,7 @@ export default function AddDataPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header />
+      <Header title="Add Data" />
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Add Data</h1>
@@ -153,9 +158,30 @@ export default function AddDataPage() {
               />
             </div>
 
+            <div>
+              <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-1">
+                Label (Answer)
+              </label>
+              <input
+                type="text"
+                id="label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter the answer/label..."
+                required
+              />
+            </div>
+
             {error && (
               <div className="text-red-600 text-sm">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="text-green-600 text-sm">
+                {success}
               </div>
             )}
 
