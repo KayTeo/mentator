@@ -7,13 +7,17 @@ import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation'
 import { Json } from '@/types/database';
 
+interface DataPointMetadata {
+  question?: string;
+  answer?: string;
+  loss_value?: number;
+  [key: string]: unknown;
+}
+
 interface DataPoint {
   id: string;
   content: string;
-  metadata: {
-    question?: string;
-    answer?: string;
-  };
+  metadata: DataPointMetadata;
 }
 
 interface Dataset {
@@ -34,6 +38,8 @@ interface DatasetDataPoint {
 export function NormalStudy() {
   const [user, setUser] = useState<User | null>(null);
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isRevealed, setIsRevealed] = useState(false);
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -106,14 +112,22 @@ export function NormalStudy() {
           throw new Error(dataPointsError.message);
         }
 
-        // Transform the data to match our DataPoint interface
+        // Transform the raw data into our DataPoint format
         const points = (dataPointsData as unknown as DatasetDataPoint[])
+          // Map each dataset_data_point to our DataPoint format
           ?.map(item => ({
-            id: item.data_points?.id || '',
-            content: item.data_points?.content || '',
-            metadata: item.metadata || {}
+            id: item.data_points?.id || '',          // Get the data point ID or empty string if null
+            content: item.data_points?.content || '', // Get the content or empty string if null
+            metadata: {
+              ...(item.metadata as DataPointMetadata), // Spread existing metadata
+              loss_value: (item.metadata as DataPointMetadata)?.loss_value ?? 0 // Set loss_value to 0 if undefined
+            }
           }))
-          .filter((point): point is DataPoint => point !== null);
+          // Filter out any null points and ensure type safety
+          .filter((point): point is { id: string; content: string; metadata: { loss_value: number } & DataPointMetadata } => point !== null)
+          // Sort points by loss_value in descending order (highest to lowest)
+          // If loss_value is undefined, it defaults to 0
+          .sort((a, b) => (b.metadata.loss_value || 0) - (a.metadata.loss_value || 0));
 
         setDataPoints(points || []);
         setError(null);
@@ -127,6 +141,42 @@ export function NormalStudy() {
 
     fetchDataPoints();
   }, [selectedDatasetId, supabase]);
+
+  const handleDifficultySelect = async (difficulty: 'easy' | 'medium' | 'hard') => {
+    const currentPoint = dataPoints[currentIndex];
+    if (!currentPoint) return;
+
+    const lossValue = {
+      easy: 0.1,
+      medium: 0.5,
+      hard: 0.9
+    }[difficulty];
+
+    try {
+      // Update the loss_value in dataset_data_points
+      const { error: updateError } = await supabase
+        .from('dataset_data_points')
+        .update({ metadata: { ...currentPoint.metadata, loss_value: lossValue } })
+        .eq('dataset_id', selectedDatasetId)
+        .eq('data_point_id', currentPoint.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      const updatedPoints = [...dataPoints];
+      updatedPoints[currentIndex] = {
+        ...currentPoint,
+        metadata: { ...currentPoint.metadata, loss_value: lossValue }
+      };
+      setDataPoints(updatedPoints);
+
+      // Move to next point or show completion
+      setCurrentIndex(currentIndex + 1);
+      setIsRevealed(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update difficulty');
+    }
+  };
 
   return (
     <div className="p-6">
@@ -157,29 +207,69 @@ export function NormalStudy() {
             </div>
           </div>
         </div>
-        <div className="border rounded-lg p-4 min-h-[400px]">
+        <div className="border rounded-lg p-4 min-h-[400px] flex flex-col items-center justify-center">
           {loading ? (
             <p className="text-center text-gray-500">Loading...</p>
           ) : error ? (
             <p className="text-center text-red-500">{error}</p>
           ) : dataPoints.length === 0 ? (
             <p className="text-center text-gray-500">No data points found in this dataset</p>
+          ) : currentIndex >= dataPoints.length ? (
+            <div className="text-center space-y-4">
+              <p className="text-xl font-medium">You've completed all cards!</p>
+              <button
+                onClick={() => {
+                  setCurrentIndex(0);
+                  setIsRevealed(false);
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Start Over
+              </button>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {dataPoints.map((point) => (
-                <div key={point.id} className="border rounded-lg p-4">
-                  <div className="mb-2">
-                    <h3 className="font-medium">Question:</h3>
-                    <p>{point.metadata.question || point.content}</p>
+            <div className="w-full max-w-2xl space-y-6">
+              <div className="text-center text-lg">
+                {dataPoints[currentIndex].content}
+              </div>
+              {!isRevealed ? (
+                <button
+                  onClick={() => setIsRevealed(true)}
+                  className="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Reveal Answer
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <h3 className="font-medium mb-2">Answer:</h3>
+                    <p>{dataPoints[currentIndex].metadata.answer}</p>
                   </div>
-                  {point.metadata.answer && (
-                    <div>
-                      <h3 className="font-medium">Answer:</h3>
-                      <p>{point.metadata.answer}</p>
-                    </div>
-                  )}
+                  <div className="flex justify-center gap-4">
+                    <button
+                      onClick={() => handleDifficultySelect('easy')}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Easy
+                    </button>
+                    <button
+                      onClick={() => handleDifficultySelect('medium')}
+                      className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                    >
+                      Medium
+                    </button>
+                    <button
+                      onClick={() => handleDifficultySelect('hard')}
+                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                    >
+                      Hard
+                    </button>
+                  </div>
                 </div>
-              ))}
+              )}
+              <div className="text-center text-sm text-gray-500">
+                {currentIndex + 1} of {dataPoints.length}
+              </div>
             </div>
           )}
         </div>
