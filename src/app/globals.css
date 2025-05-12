@@ -25,26 +25,30 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Default text color for divs */
+div {
+}
+
 /* Placeholder text styling */
 ::placeholder {
-  color: #6B7280 !important; /* text-gray-500 */
+  color: var(--secondary-text) !important;
   opacity: 1 !important;
 }
 
 /* For Firefox */
 ::-moz-placeholder {
-  color: #6B7280 !important;
+  color: var(--secondary-text) !important;
   opacity: 1 !important;
 }
 
 /* For Edge */
 ::-ms-input-placeholder {
-  color: #6B7280 !important;
+  color: var(--secondary-text) !important;
   opacity: 1 !important;
 }
 
 /* For IE */
 :-ms-input-placeholder {
-  color: #6B7280 !important;
+  color: var(--secondary-text) !important;
   opacity: 1 !important;
 }
