@@ -12,11 +12,11 @@ export default function StudyPage() {
   const [studyMode, setStudyMode] = useState<StudyMode>('normal');
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       <Header title="Study" />
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Study Mode</h1>
+          <h1 className="text-3xl font-bold text-foreground">Study Mode</h1>
           <Select
             value={studyMode}
             onValueChange={(value: StudyMode) => setStudyMode(value)}
@@ -31,7 +31,7 @@ export default function StudyPage() {
           </Select>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-background rounded-lg shadow">
           {studyMode === 'chatbot' ? <ChatbotStudy /> : <NormalStudy />}
         </div>
       </div>
