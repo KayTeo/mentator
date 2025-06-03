@@ -32,6 +32,7 @@ interface DatasetDataPoint {
   data_points: {
     id: string;
     content: string;
+    label: string | null;
   } | null;
 }
 
@@ -102,7 +103,8 @@ export function NormalStudy() {
             metadata,
             data_points (
               id,
-              content
+              content,
+              label
             )
           `)
           .eq('dataset_id', selectedDatasetId);

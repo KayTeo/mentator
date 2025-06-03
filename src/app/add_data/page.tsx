@@ -66,7 +66,8 @@ export default function AddDataPage() {
         .from('data_points')
         .insert({
           user_id: user.id,
-          content: content.trim()
+          content: content.trim(),
+          label: label.trim()
         })
         .select()
         .single()
@@ -78,8 +79,7 @@ export default function AddDataPage() {
         .from('dataset_data_points')
         .insert({
           dataset_id: selectedDataset,
-          data_point_id: dataPoint.id,
-          label: label.trim()
+          data_point_id: dataPoint.id
         })
 
       if (associationError) throw associationError

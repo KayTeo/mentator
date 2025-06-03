@@ -63,6 +63,7 @@ export interface Database {
           user_id: string
           content: string
           metadata: Json
+          label: string | null
           created_at: string
           updated_at: string
         }
@@ -71,6 +72,7 @@ export interface Database {
           user_id: string
           content: string
           metadata?: Json
+          label?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -79,6 +81,7 @@ export interface Database {
           user_id?: string
           content?: string
           metadata?: Json
+          label?: string | null
           created_at?: string
           updated_at?: string
         }

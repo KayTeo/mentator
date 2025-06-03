@@ -11,11 +11,11 @@ type Dataset = Database['public']['Tables']['datasets']['Row'];
 type DatasetDataPoint = {
   data_point_id: string;
   metadata: Json | null;
-  label: string | null;
   created_at: string;
   data_points: {
     id: string;
     content: string;
+    label: string | null;
   } | null;
 };
 
@@ -86,11 +86,11 @@ export default function ViewDatasetPage() {
           .select(`
             data_point_id,
             metadata,
-            label,
             created_at,
             data_points (
               id,
-              content
+              content,
+              label
             )
           `)
           .eq('dataset_id', datasetId)
