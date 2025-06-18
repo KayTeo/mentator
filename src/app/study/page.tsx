@@ -6,10 +6,10 @@ import { Header } from "@/components/Header";
 import { ChatbotStudy } from './ChatbotStudy';
 import { NormalStudy } from './NormalStudy';
 
-type StudyMode = 'chatbot' | 'normal';
+type StudyMode = 'chat' | 'normal';
 
 export default function StudyPage() {
-  const [studyMode, setStudyMode] = useState<StudyMode>('normal');
+  const [studyMode, setStudyMode] = useState<StudyMode>('chat');
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,13 +26,13 @@ export default function StudyPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="normal">Normal Study</SelectItem>
-              <SelectItem value="chatbot">Chatbot Study</SelectItem>
+              <SelectItem value="chat">Chatbot Study</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="bg-background rounded-lg shadow">
-          {studyMode === 'chatbot' ? <ChatbotStudy /> : <NormalStudy />}
+          {studyMode === 'chat' ? <ChatbotStudy /> : <NormalStudy />}
         </div>
       </div>
     </div>
