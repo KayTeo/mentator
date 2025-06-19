@@ -7,12 +7,21 @@ const deepseek = createDeepSeek({
   });
 
 export async function POST(req: Request) {
-    console.log("Received request");
     const { messages } = await req.json();
+
+    // Add a system prompt/context at the beginning
+    const systemPrompt = {
+        role: "system",
+        content: "You are a helpful assistant. Answer as concisely as possible."
+    };
+
+    // Prepend the system prompt to the messages array
+    const messagesWithContext = [systemPrompt, ...messages];
+
     // Use streamText to stream the response from the LLM
     const result = streamText({
         model: deepseek('deepseek-chat'),
-        messages,
+        messages: messagesWithContext,
     });
     return result.toDataStreamResponse();
 } 

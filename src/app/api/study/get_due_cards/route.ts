@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { learning_algorithm } from '@/lib/learning_algorithm';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
@@ -6,28 +7,32 @@ const supabase = createClient(
 );
 
 //TODO: Add first question asked, get/return, handle states
+// This is hasty and very inefficient
 export async function POST(req: Request) {
   try {
+    console.log("Getting due cards");
     const body = await req.json();
     const datasetId = body.dataset_id;
-
+    console.log("Dataset ID is" + datasetId);
     if (!datasetId) {
       return new Response(JSON.stringify({ error: 'Dataset ID is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
-    // Query the dataset_data_points table
-    const { data: dataPointsData, error: dataPointsError } = await supabase
+    
+    // Query the dataset_data_points table and join with data_points
+    const { data: datasetPointsData, error: dataPointsError } = await supabase
       .from('dataset_data_points')
       .select(`
-        data_point_id,
-        metadata,
         data_points (
           id,
+          user_id,
           content,
-          label
+          label,
+          created_at,
+          updated_at,
+          metadata
         )
       `)
       .eq('dataset_id', datasetId);
@@ -35,19 +40,13 @@ export async function POST(req: Request) {
     if (dataPointsError) {
       throw new Error(dataPointsError.message);
     }
-
+    console.log("Dataset points data is" + datasetPointsData);
+    // Flatten and extract just the data_points
+    const dataPointsArray = datasetPointsData?.map(row => row.data_points).flat();
+    console.log("Data points array is" + dataPointsArray);
     // Transform and sort the data points
-    const points = dataPointsData
-      ?.map(item => ({
-        id: item.data_points?.id || '',
-        content: item.data_points?.content || '',
-        metadata: {
-          ...item.metadata,
-          loss_value: item.metadata?.loss_value ?? 0
-        }
-      }))
-      .filter(point => point.id && point.content)
-      .sort((a, b) => (b.metadata.loss_value || 0) - (a.metadata.loss_value || 0));
+    const points = learning_algorithm(dataPointsArray);
+
 
     if (!points?.length) {
       return new Response(JSON.stringify({ error: 'No data points found' }), {
@@ -56,7 +55,7 @@ export async function POST(req: Request) {
       });
     }
 
-    return new Response(JSON.stringify({ dataPoint: points[0] }), {
+    return new Response(JSON.stringify({ dataPoints: points }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

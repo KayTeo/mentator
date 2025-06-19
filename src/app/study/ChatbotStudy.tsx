@@ -12,6 +12,8 @@ export function ChatbotStudy() {
   const [datasets, setDatasets] = useState<Database['public']['Tables']['datasets']['Row'][]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string>('');
   const [loadingDatasets, setLoadingDatasets] = useState(true);
+  const [currentCard, setCurrentCard] = useState<Database['public']['Tables']['data_points']['Row'] | null>(null);
+  const [cardSet, setCardSet] = useState<Database['public']['Tables']['data_points']['Row'][]>([]);
   const supabase = createClient();
 
   // On mount, try to load persisted dataset
@@ -42,18 +44,57 @@ export function ChatbotStudy() {
   }, [supabase]);
 
   // Persist selection
+  // Retrieve cards from dataset that need reviewing
+  useEffect(() => {
+    const fetchDueCards = async () => {
+      if (!selectedDataset) return;
+
+      try {
+        const response = await fetch('/api/study/get_due_cards', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dataset_id: selectedDataset
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch due cards');
+        }
+
+        const data = await response.json();
+        if (data.dataPoints) {
+          setCardSet(data.dataPoints);
+          // Set first card if available
+          if (data.dataPoints.length > 0) {
+            setCurrentCard(data.dataPoints[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching due cards:', error);
+      }
+    };
+
+    fetchDueCards();
+    console.log("Cards are" + cardSet);
+  }, [selectedDataset]);
+  // TODO: Implement logic to cycle through them
+  // TODO: Implement logic on dataset change
+  // TODO: Put message as context when accessing chat api
   useEffect(() => {
     if (selectedDataset) {
       localStorage.setItem('selectedDataset', selectedDataset);
     }
   }, [selectedDataset]);
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: '/api/study/next',
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading, error } = useChat({
+    api: '/api/chat',
     body: {
       dataset_id: selectedDataset
     }
   });
+
 
   return (
     <div className="p-6">
