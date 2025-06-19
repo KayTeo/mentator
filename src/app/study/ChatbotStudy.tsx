@@ -1,17 +1,92 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/Button';
 import { useChat } from '@ai-sdk/react';
+import { createClient } from '@/utils/supabase/client';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Database } from '@/types/database';
 
 export function ChatbotStudy() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat();
+  const [datasets, setDatasets] = useState<Database['public']['Tables']['datasets']['Row'][]>([]);
+  const [selectedDataset, setSelectedDataset] = useState<string>('');
+  const [loadingDatasets, setLoadingDatasets] = useState(true);
+  const supabase = createClient();
+
+  // On mount, try to load persisted dataset
+  useEffect(() => {
+    const saved = localStorage.getItem('selectedDataset');
+    if (saved) setSelectedDataset(saved);
+  }, []);
+
+  useEffect(() => {
+    const fetchDatasets = async () => {
+      setLoadingDatasets(true);
+      const { data, error } = await supabase
+        .from('datasets')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setDatasets(data);
+        // If no dataset is selected, pick the first one (or persisted one)
+        if (!selectedDataset && data.length > 0) {
+          const saved = localStorage.getItem('selectedDataset');
+          setSelectedDataset(saved && data.some(ds => ds.id === saved) ? saved : data[0].id);
+        }
+      }
+      setLoadingDatasets(false);
+    };
+    fetchDatasets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+
+  // Persist selection
+  useEffect(() => {
+    if (selectedDataset) {
+      localStorage.setItem('selectedDataset', selectedDataset);
+    }
+  }, [selectedDataset]);
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    api: '/api/study/next',
+    body: {
+      dataset_id: selectedDataset
+    }
+  });
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-4">Chatbot Study Mode</h2>
       <div className="flex flex-col gap-4">
+        <div className="w-full max-w-xs mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Select Dataset</label>
+          <Select
+            value={selectedDataset}
+            onValueChange={setSelectedDataset}
+            disabled={loadingDatasets || datasets.length === 0}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue
+                placeholder={
+                  loadingDatasets
+                    ? 'Loading datasets...'
+                    : datasets.length === 0
+                      ? 'No datasets found'
+                      : 'Select a dataset'
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {datasets.map(ds => (
+                <SelectItem key={ds.id} value={ds.id}>{ds.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(!loadingDatasets && datasets.length === 0) && (
+            <p className="text-sm text-red-500 mt-2">No datasets found. Please create a dataset to start studying.</p>
+          )}
+        </div>
         <div className="bg-gray-50 p-4 rounded-lg">
           <p className="text-sm text-gray-600">
             Chat with an AI tutor to help you learn and understand concepts better.
@@ -46,14 +121,22 @@ export function ChatbotStudy() {
               ref={inputRef}
               type="text"
               className="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600"
-              placeholder="Type your question..."
+              placeholder={
+                loadingDatasets
+                  ? "Loading datasets..."
+                  : datasets.length === 0
+                    ? "No datasets found"
+                    : selectedDataset
+                      ? "Type your question..."
+                      : "Select a dataset first"
+              }
               value={input}
               onChange={handleInputChange}
-              disabled={isLoading}
+              disabled={isLoading || !selectedDataset || datasets.length === 0}
               autoFocus
             />
             <Button
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !selectedDataset || datasets.length === 0}
               variant="primary"
               type="submit"
             >
