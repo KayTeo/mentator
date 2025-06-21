@@ -50,26 +50,25 @@ export function ChatbotStudy() {
       if (!selectedDataset) return;
 
       try {
-        const response = await fetch('/api/study/get_due_cards', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            dataset_id: selectedDataset
-          })
-        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('No authenticated user');
+        }
 
-        if (!response.ok) {
+        const { data, error } = await supabase.from('dataset_data_points')
+          .select('*')
+          .eq('dataset_id', selectedDataset)
+          .eq('user_id', user.id);
+
+        if (error) {
           throw new Error('Failed to fetch due cards');
         }
 
-        const data = await response.json();
-        if (data.dataPoints) {
-          setCardSet(data.dataPoints);
+        if (data) {
+          setCardSet(data);
           // Set first card if available
-          if (data.dataPoints.length > 0) {
-            setCurrentCard(data.dataPoints[0]);
+          if (data.length > 0) {
+            setCurrentCard(data[0]);
           }
         }
       } catch (error) {
