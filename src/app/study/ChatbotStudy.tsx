@@ -6,6 +6,7 @@ import { useChat } from '@ai-sdk/react';
 import { createClient } from '@/utils/supabase/client';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Database } from '@/types/database';
+import { learning_algorithm } from '@/lib/learning_algorithm';
 
 export function ChatbotStudy() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +84,9 @@ export function ChatbotStudy() {
             .flat()
             .filter(point => point !== null) as Database['public']['Tables']['data_points']['Row'][];
           console.log("Data points are" + dataPoints);
-          setCardSet(dataPoints);
+          const processedCards = learning_algorithm(dataPoints);
+          console.log("Processed cards are:", processedCards);
+          setCardSet(processedCards);
           // Set first card if available
           if (dataPoints.length > 0) {
             setCurrentCard(dataPoints[0]);
@@ -104,7 +107,6 @@ export function ChatbotStudy() {
     }
   }, [cardSet]);
   
-  // TODO: Implement logic on dataset change
   // TODO: Put message as context when accessing chat api
   useEffect(() => {
     if (selectedDataset) {
