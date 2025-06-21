@@ -55,20 +55,38 @@ export function ChatbotStudy() {
           throw new Error('No authenticated user');
         }
 
-        const { data, error } = await supabase.from('dataset_data_points')
-          .select('*')
-          .eq('dataset_id', selectedDataset)
-          .eq('user_id', user.id);
+        // Query dataset_data_points and join with data_points to get actual content
+        const { data, error } = await supabase
+          .from('dataset_data_points')
+          .select(`
+            data_point_id,
+            data_points (
+              id,
+              user_id,
+              content,
+              label,
+              created_at,
+              updated_at,
+              metadata
+            )
+          `)
+          .eq('dataset_id', selectedDataset);
 
         if (error) {
           throw new Error('Failed to fetch due cards');
         }
 
         if (data) {
-          setCardSet(data);
+          // Extract the data_points from the joined result and flatten
+          const dataPoints = data
+            .map(row => row.data_points)
+            .flat()
+            .filter(point => point !== null) as Database['public']['Tables']['data_points']['Row'][];
+          console.log("Data points are" + dataPoints);
+          setCardSet(dataPoints);
           // Set first card if available
-          if (data.length > 0) {
-            setCurrentCard(data[0]);
+          if (dataPoints.length > 0) {
+            setCurrentCard(dataPoints[0]);
           }
         }
       } catch (error) {
@@ -77,9 +95,15 @@ export function ChatbotStudy() {
     };
 
     fetchDueCards();
-    console.log("Cards are" + cardSet);
-  }, [selectedDataset]);
+  }, [selectedDataset, supabase]);
+
   // TODO: Implement logic to cycle through them
+  useEffect(() => {
+    if (cardSet.length > 0) {
+      setCurrentCard(cardSet[0]);
+    }
+  }, [cardSet]);
+  
   // TODO: Implement logic on dataset change
   // TODO: Put message as context when accessing chat api
   useEffect(() => {
