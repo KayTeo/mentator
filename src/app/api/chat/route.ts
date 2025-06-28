@@ -7,21 +7,34 @@ const deepseek = createDeepSeek({
   });
 
 export async function POST(req: Request) {
-    const { messages } = await req.json();
+    const { messages, chat_state, card_context, content } = await req.json();
 
-    // Add a system prompt/context at the beginning
-    const systemPrompt = {
+    var systemPrompt = {
         role: "system",
-        content: "You are a helpful assistant. Answer as concisely as possible."
+        content: `You are a helpful AI tutor. You have access to the following study material context: ${card_context || 'No specific context provided.'} Use this context to provide accurate and helpful responses to the user's questions. Be encouraging and educational in your responses.`
     };
-
-    // Prepend the system prompt to the messages array
+    // Combine system prompt with user messages
     const messagesWithContext = [systemPrompt, ...messages];
 
     // Use streamText to stream the response from the LLM
-    const result = streamText({
-        model: deepseek('deepseek-chat'),
-        messages: messagesWithContext,
-    });
-    return result.toDataStreamResponse();
+    var result;
+
+    if (chat_state === 'asking') {
+        return Response.json({
+            choices: [{
+              message: {
+                role: 'assistant',
+                content: 'Your fixed string here'
+              }
+            }]
+          });
+    } else {
+        result = streamText({
+            model: deepseek('deepseek-chat'),
+            messages: messagesWithContext,
+        });
+        return result.toDataStreamResponse();
+    }
+
+
 } 

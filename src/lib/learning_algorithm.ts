@@ -33,7 +33,6 @@ export function learning_algorithm(data_edges: Database['public']['Tables']['dat
             (new Date().getTime() - new Date(String(data_edge.metadata.last_studied.date)).getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        console.log("Metadata is", data_edge.metadata);
         if (
             days_passed > 2**data_edge.metadata.number_of_times_studied - 1
         ) {
@@ -41,6 +40,5 @@ export function learning_algorithm(data_edges: Database['public']['Tables']['dat
         }
     });
 
-    console.log("Return data edges are", return_data_edges);
     return return_data_edges;
 }
