@@ -18,16 +18,37 @@ export async function POST(req: Request) {
 
     // Use streamText to stream the response from the LLM
     var result;
-
     if (chat_state === 'asking') {
-        return Response.json({
-            choices: [{
-              message: {
-                role: 'assistant',
-                content: 'Your fixed string here'
-              }
-            }]
-          });
+  // Create a readable stream that follows AI SDK data stream protocol
+        const stream = new ReadableStream({
+            start(controller) {
+            // Split the static text into chunks to simulate streaming
+            const chunks = String(content).split(' ');
+            
+            chunks.forEach((chunk, index) => {
+                // Format: 0:"text_content"\n (0 indicates text part)
+                const textPart = `0:${JSON.stringify(chunk + ' ')}\n`;
+                controller.enqueue(new TextEncoder().encode(textPart));
+            });
+            
+            // Send finish message part at the end
+            // Format: d:{finishReason, usage}\n
+            const finishPart = `d:${JSON.stringify({
+                finishReason: 'stop',
+                usage: { promptTokens: 0, completionTokens: chunks.length }
+            })}\n`;
+            controller.enqueue(new TextEncoder().encode(finishPart));
+            
+            controller.close();
+            }
+        });
+
+        return new Response(stream, {
+            headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'x-vercel-ai-data-stream': 'v1', // Required for data stream protocol
+            },
+        });
     } else {
         result = streamText({
             model: deepseek('deepseek-chat'),
