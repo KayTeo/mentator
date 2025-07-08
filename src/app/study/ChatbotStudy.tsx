@@ -21,6 +21,18 @@ export function ChatbotStudy() {
   const [chat_state, setChatState] = useState<string>('asking');
   const supabase = createClient();
 
+  // Initialize chat object
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading, error, append } = useChat({
+    api: '/api/chat',
+    body: {
+      dataset_id: selectedDataset,
+      chat_state: chat_state,
+      content: currentCard ? currentCard.content : '',
+      card_context: currentCard ? `Content: ${currentCard.content}\nLabel: ${currentCard.label}` : '',
+    },
+    key: `${selectedDataset}-${currentQuestionIndex}` // Force reset when dataset or question changes
+  });
+
   // On mount, try to load persisted dataset
   useEffect(() => {
     const saved = localStorage.getItem('selectedDataset');
@@ -112,34 +124,10 @@ export function ChatbotStudy() {
     }
   }, [cardSet, currentQuestionIndex]);
 
-  // TODO: Put message as context when accessing chat api
-  useEffect(() => {
-    if (selectedDataset) {
-      localStorage.setItem('selectedDataset', selectedDataset);
-    }
-  }, [selectedDataset]);
-
-  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading, error, append } = useChat({
-    api: '/api/chat',
-    body: {
-      dataset_id: selectedDataset,
-      chat_state: chat_state,
-      content: currentCard ? currentCard.content : '',
-      card_context: currentCard ? `Content: ${currentCard.content}\nLabel: ${currentCard.label}` : '',
-    },
-    initialMessages: [
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: 'Hello! I\'m your AI tutor. I\'m here to help you study and understand the material. What would you like to learn about today?'
-      }
-    ],
-    key: `${selectedDataset}-${currentQuestionIndex}` // Force reset when dataset or question changes
-  });
-
   // Add question to chat when current card changes (after useChat is defined)
   useEffect(() => {
     console.log('Send new question', currentCard, isWaitingForAnswer, lastAddedQuestionRef.current, currentQuestionIndex)
+    setChatState('asking');
     if (currentCard && isWaitingForAnswer && lastAddedQuestionRef.current !== currentQuestionIndex) {
       append({
         role: 'assistant',
@@ -149,21 +137,6 @@ export function ChatbotStudy() {
     }
   }, [currentCard, currentQuestionIndex, append, isWaitingForAnswer]);
 
-  // Function to grade user's answer
-  const gradeUserAnswer = async (userAnswer: string) => {
-    if (!currentCard) return;
-
-    try {
-      await append({
-        role: 'user',
-        content: `Grade this answer: ${userAnswer}`
-      });
-      
-      // The API will handle the grading based on the context
-    } catch (error) {
-      console.error('Error grading answer:', error);
-    }
-  };
 
   // Function to move to next question
   const moveToNextQuestion = () => {
@@ -187,30 +160,31 @@ export function ChatbotStudy() {
     
     if (userAnswer.trim() && currentCard) {
       setInput(userAnswer);
+
+      // Send user's answer to grading API
+      fetch('/api/grade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: userAnswer,
+          chat_state: 'grading',
+          card_context: currentCard.content,
+          content: currentCard.content,
+          userAnswer: userAnswer
+        }),
+      });
       
       // Add user's answer to the chat
+      setChatState('grading');
       await append({
         role: 'user',
-        content: userAnswer
+        content: `${userAnswer}`
       });
-
-      // Grade the answer
-      await gradeUserAnswer(userAnswer);
-      
-      // Move to next question after a short delay
-      setTimeout(() => {
-        moveToNextQuestion();
-      }, 2000);
+      moveToNextQuestion();
     }
   }
-
-  // Function to start a new question session
-  const startNewSession = () => {
-    setCurrentQuestionIndex(0);
-    setIsWaitingForAnswer(true);
-    setInput(''); // Clear input
-    lastAddedQuestionRef.current = -1; // Reset the ref so questions can be added again
-  };
 
   return (
     <div className="p-6">
@@ -321,19 +295,6 @@ export function ChatbotStudy() {
                 {isLoading ? 'Grading...' : 'Submit Answer'}
               </Button>
             </form>
-          )}
-
-          {/* Session Controls */}
-          {!isWaitingForAnswer && cardSet.length > 0 && (
-            <div className="flex gap-2 mt-auto">
-              <Button
-                onClick={startNewSession}
-                variant="secondary"
-                className="flex-1"
-              >
-                Start New Session
-              </Button>
-            </div>
           )}
         </div>
       </div>

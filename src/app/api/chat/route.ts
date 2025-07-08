@@ -4,15 +4,24 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 const deepseek = createDeepSeek({
     apiKey: process.env.DEEPSEEK_API_KEY ?? '',
     baseURL: process.env.DEEPSEEK_BASE_URL ?? '',
-  });
+});
 
 export async function POST(req: Request) {
     const { messages, chat_state, card_context, content } = await req.json();
 
     var systemPrompt = {
         role: "system",
-        content: `You are a helpful AI tutor. You have access to the following study material context: ${card_context || 'No specific context provided.'} Use this context to provide accurate and helpful responses to the user's questions. Be encouraging and educational in your responses.`
+        content: `You are a helpful AI tutor.
+        You have access to the following study material context: ${card_context || 'No specific context provided.'}. 
+        Use this context to provide accurate and helpful responses to the user's questions.
+        Be encouraging and educational in your responses.
+        Return the response in this format:
+        Feedback:
+        [Newline]
+        Grade: (from 1 to 100)
+        `
     };
+    
     // Combine system prompt with user messages
     const messagesWithContext = [systemPrompt, ...messages];
 
@@ -23,7 +32,7 @@ export async function POST(req: Request) {
         const stream = new ReadableStream({
             start(controller) {
             // Split the static text into chunks to simulate streaming
-            const chunks = String(content).split(' ');
+            const chunks = String('').split(' ');
             
             chunks.forEach((chunk, index) => {
                 // Format: 0:"text_content"\n (0 indicates text part)
@@ -56,6 +65,4 @@ export async function POST(req: Request) {
         });
         return result.toDataStreamResponse();
     }
-
-
 } 
