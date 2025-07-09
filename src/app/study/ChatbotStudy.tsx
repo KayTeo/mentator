@@ -100,11 +100,12 @@ export function ChatbotStudy() {
             .flat()
             .filter(point => point !== null) as Database['public']['Tables']['data_points']['Row'][];
           const processedCards = learning_algorithm(dataPoints);
+          console.log("Processed cards", processedCards);
           setCardSet(processedCards);
           // Reset to first question when dataset changes
           setCurrentQuestionIndex(0);
-          if (dataPoints.length > 0) {
-            setCurrentCard(dataPoints[0]);
+          if (processedCards.length > 0) {
+            setCurrentCard(processedCards[0]);
             setIsWaitingForAnswer(true);
           }
         }
@@ -153,6 +154,37 @@ export function ChatbotStudy() {
     }
   };
 
+  function getLossValue(grade: string) {
+    if (grade === 'A') {
+      return 0;
+    } else if (grade === 'B') {
+      return 0.25;
+    } else if (grade === 'C') {
+      return 0.5;
+    } else if (grade === 'D') {
+      return 0.75;
+    } else if (grade === 'F') {
+      return 1;
+    }
+    return 1;
+  }
+
+  async function updateCardLoss(grade: string, userAnswer: string) {
+    const metadata = {
+      grade: grade,
+      user_answer: userAnswer,
+      last_studied: new Date().toISOString(),
+      number_of_times_studied: currentCard?.metadata?.number_of_times_studied + 1 || 1,
+      loss_value: getLossValue(grade),
+    }
+    if (currentCard) {
+      const { data, error } = await supabase
+        .from('data_points')
+        .update({ metadata: metadata })
+        .eq('id', currentCard.id);
+    }
+  }
+
   async function handleSubmitWrapper(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
@@ -161,8 +193,8 @@ export function ChatbotStudy() {
     if (userAnswer.trim() && currentCard) {
       setInput(userAnswer);
 
-      // Send user's answer to grading API
-      fetch('/api/grade', {
+      // Start the grade API call (don't await yet)
+      const gradePromise = fetch('/api/grade', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,12 +208,20 @@ export function ChatbotStudy() {
         }),
       });
       
-      // Add user's answer to the chat
+      // Add user's answer to the chat (runs concurrently with the API call)
       setChatState('grading');
       await append({
         role: 'user',
         content: `${userAnswer}`
       });
+
+      // Now wait for the grade API to complete
+      const gradeResponse = await gradePromise;
+      const gradeData = await gradeResponse.json();
+      console.log(gradeData);
+      updateCardLoss(gradeData.message, userAnswer);
+      
+      // gradeData.message is the grade
       moveToNextQuestion();
     }
   }

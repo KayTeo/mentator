@@ -14,8 +14,15 @@ export async function POST(req: Request) {
         const completion = await deepseek.chat.completions.create({
             messages: [{ 
                 role: "system",
-                content: `This is the question: ${card_context}. This is the correct answer: ${content}. User answer: ${userAnswer}.
-                Return a single number between 1 and 100, 1 being completely incorrect and 100 being completely correct.`
+                content: `This is the question: ${card_context}.
+                Compare correct answer: ${content}
+                with the user answer: ${userAnswer}.
+                Return a just a letter grade (A, B, C, D, F).
+                A being correct compared with the correct answer. 
+                B being somewhat correct with little room for improvement compared with the correct answer.
+                C being neither with some room for improvement compared with the correct answer.
+                D being incorrect with significant room for improvement compared with the correct answer.
+                F being completely incorrect with complete room for improvement compared with the correct answer.`
             }],
             model: "deepseek-chat",
             stream: false
@@ -23,8 +30,6 @@ export async function POST(req: Request) {
 
         // Extract the response content
         const responseContent = completion.choices[0]?.message?.content;
-
-        console.log('DeepSeek API response:', responseContent);
         
         return new Response(JSON.stringify({
             message: responseContent,
