@@ -6,7 +6,7 @@ import { useChat } from '@ai-sdk/react';
 import { createClient } from '@/utils/supabase/client';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Database } from '@/types/database';
-import { learning_algorithm } from '@/lib/learning_algorithm';
+import { fetchDueCards, fetchDatasets, updateCardLoss } from '@/utils/assorted/helper';
 
 export function ChatbotStudy() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,7 +22,7 @@ export function ChatbotStudy() {
   const supabase = createClient();
 
   // Initialize chat object
-  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading, error, append } = useChat({
+  const { messages, input, handleInputChange, setInput, isLoading, error, append } = useChat({
     api: '/api/chat',
     body: {
       dataset_id: selectedDataset,
@@ -40,81 +40,46 @@ export function ChatbotStudy() {
   }, []);
 
   useEffect(() => {
-    const fetchDatasets = async () => {
+    const loadDatasets = async () => {
       setLoadingDatasets(true);
-      const { data, error } = await supabase
-        .from('datasets')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error && data) {
+      try {
+        const data = await fetchDatasets(supabase);
         setDatasets(data);
         // If no dataset is selected, pick the first one (or persisted one)
         if (!selectedDataset && data.length > 0) {
           const saved = localStorage.getItem('selectedDataset');
           setSelectedDataset(saved && data.some(ds => ds.id === saved) ? saved : data[0].id);
         }
+      } catch (error) {
+        console.error('Error loading datasets:', error);
       }
       setLoadingDatasets(false);
     };
-    fetchDatasets();
+    loadDatasets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
 
-  // Persist selection
   // Retrieve cards from dataset that need reviewing
   useEffect(() => {
-    const fetchDueCards = async () => {
+    const loadDueCards = async () => {
       if (!selectedDataset) return;
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('No authenticated user');
-        }
-
-        // Query dataset_data_points and join with data_points to get actual content
-        const { data, error } = await supabase
-          .from('dataset_data_points')
-          .select(`
-            data_point_id,
-            data_points (
-              id,
-              user_id,
-              content,
-              label,
-              created_at,
-              updated_at,
-              metadata
-            )
-          `)
-          .eq('dataset_id', selectedDataset);
-
-        if (error) {
-          throw new Error('Failed to fetch due cards');
-        }
-
-        if (data) {
-          // Extract the data_points from the joined result and flatten
-          const dataPoints = data
-            .map(row => row.data_points)
-            .flat()
-            .filter(point => point !== null) as Database['public']['Tables']['data_points']['Row'][];
-          const processedCards = learning_algorithm(dataPoints);
-          console.log("Processed cards", processedCards);
-          setCardSet(processedCards);
-          // Reset to first question when dataset changes
-          setCurrentQuestionIndex(0);
-          if (processedCards.length > 0) {
-            setCurrentCard(processedCards[0]);
-            setIsWaitingForAnswer(true);
-          }
+        const processedCards = await fetchDueCards(selectedDataset, supabase);
+        console.log("Processed cards", processedCards);
+        setCardSet(processedCards);
+        // Reset to first question when dataset changes
+        setCurrentQuestionIndex(0);
+        if (processedCards.length > 0) {
+          setCurrentCard(processedCards[0]);
+          setIsWaitingForAnswer(true);
         }
       } catch (error) {
         console.error('Error fetching due cards:', error);
       }
     };
 
-    fetchDueCards();
+    loadDueCards();
   }, [selectedDataset, supabase]);
 
   // Update current card when question index changes
@@ -141,49 +106,18 @@ export function ChatbotStudy() {
 
   // Function to move to next question
   const moveToNextQuestion = () => {
-    if (currentQuestionIndex < cardSet.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setInput(''); // Clear input for next question
-    } else {
-      // All questions completed
-      setIsWaitingForAnswer(false);
-      append({
-        role: 'assistant',
-        content: '🎉 Congratulations! You have completed all questions in this dataset. Great job!'
-      });
-    }
-  };
-
-  function getLossValue(grade: string) {
-    if (grade === 'A') {
-      return 0;
-    } else if (grade === 'B') {
-      return 0.25;
-    } else if (grade === 'C') {
-      return 0.5;
-    } else if (grade === 'D') {
-      return 0.75;
-    } else if (grade === 'F') {
-      return 1;
-    }
-    return 1;
-  }
-
-  async function updateCardLoss(grade: string, userAnswer: string) {
-    const metadata = {
-      grade: grade,
-      user_answer: userAnswer,
-      last_studied: new Date().toISOString(),
-      number_of_times_studied: currentCard?.metadata?.number_of_times_studied + 1 || 1,
-      loss_value: getLossValue(grade),
-    }
-    if (currentCard) {
-      const { data, error } = await supabase
-        .from('data_points')
-        .update({ metadata: metadata })
-        .eq('id', currentCard.id);
-    }
-  }
+      if (currentQuestionIndex < cardSet.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setInput(''); // Clear input for next question
+      } else {
+        // All questions completed
+        setIsWaitingForAnswer(false);
+        append({
+          role: 'assistant',
+          content: '🎉 Congratulations! You have completed all questions in this dataset. Great job!'
+        });
+      }
+    };
 
   async function handleSubmitWrapper(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -219,7 +153,7 @@ export function ChatbotStudy() {
       const gradeResponse = await gradePromise;
       const gradeData = await gradeResponse.json();
       console.log(gradeData);
-      updateCardLoss(gradeData.message, userAnswer);
+      updateCardLoss(gradeData.message, userAnswer, currentCard, supabase);
       
       // gradeData.message is the grade
       moveToNextQuestion();
@@ -293,7 +227,7 @@ export function ChatbotStudy() {
             {messages.length === 0 ? (
               <p className="text-center text-gray-500">Start answering questions to see your progress!</p>
             ) : (
-              messages.map((msg, idx) => (
+              messages.map((msg) => (
                 <div key={msg.id} className={msg.role === 'user' ? 'text-right' : 'text-left'}>
                   <span className={
                     msg.role === 'user'
