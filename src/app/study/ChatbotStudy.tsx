@@ -111,7 +111,7 @@ export function ChatbotStudy() {
       });
       
       const gradeData = await gradeResponse.json();
-      console.log(gradeData);
+      console.log("Grade is " + gradeData.message);
       await updateCardLoss(gradeData.message, userAnswer, currentCard, supabase);
       
       // Move to next question

@@ -142,6 +142,7 @@ export function ChatbotInterface({
             value={input}
             onChange={handleInputChange}
             disabled={isLoading}
+            autoComplete="off"
             autoFocus
           />
           <Button
