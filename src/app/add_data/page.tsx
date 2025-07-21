@@ -1,17 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { Header } from '@/components/Header'
-import { User } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
+import { Header } from '@/components/Header'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { useAuth } from '@/hooks/useAuth'
 
 type Dataset = Database['public']['Tables']['datasets']['Row']
 
-export default function AddDataPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+/**
+ * Add data page component
+ * 
+ * This page allows users to add new data points to their datasets.
+ * It is protected and requires authentication.
+ */
+function AddDataPageContent() {
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [selectedDataset, setSelectedDataset] = useState<string>('')
   const [content, setContent] = useState('')
@@ -19,17 +23,14 @@ export default function AddDataPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const router = useRouter()
   const supabase = createClient()
+  const { user } = useAuth()
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-      } else {
-        setUser(user)
-        // Fetch user's datasets
+    const fetchDatasets = async () => {
+      if (!user) return
+      
+      try {
         const { data: datasets, error } = await supabase
           .from('datasets')
           .select('*')
@@ -37,6 +38,7 @@ export default function AddDataPage() {
         
         if (error) {
           console.error('Error fetching datasets:', error)
+          setError('Failed to load datasets')
         } else {
           setDatasets(datasets)
           // Set initial dataset from URL if present
@@ -46,91 +48,84 @@ export default function AddDataPage() {
             setSelectedDataset(datasetId)
           }
         }
-      }
-      setLoading(false)
+              } catch {
+          setError('Failed to load datasets')
+        }
     }
 
-    getUser()
-  }, [router, supabase.auth])
+    fetchDatasets()
+  }, [user, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !selectedDataset || !content.trim() || !label.trim()) return
+    if (!selectedDataset || !content.trim()) return
 
     setSubmitting(true)
     setError(null)
+    setSuccess(null)
 
     try {
-      // Create the data point
+      // First, create the data point
       const { data: dataPoint, error: dataPointError } = await supabase
         .from('data_points')
         .insert({
-          user_id: user.id,
           content: content.trim(),
-          label: label.trim()
+          label: label.trim() || null
         })
         .select()
         .single()
 
       if (dataPointError) throw dataPointError
 
-      // Create the association
-      const { error: associationError } = await supabase
+      // Then, link it to the dataset
+      const { error: linkError } = await supabase
         .from('dataset_data_points')
         .insert({
           dataset_id: selectedDataset,
           data_point_id: dataPoint.id
         })
 
-      if (associationError) throw associationError
+      if (linkError) throw linkError
 
-      // Reset form
+      setSuccess('Data point added successfully!')
       setContent('')
       setLabel('')
-      setSuccess('Data point added successfully!')
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
-      console.error('Error adding data point:', err)
-      setError('Failed to add data point. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to add data point')
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (loading) {
-    return <div>Loading...</div>
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header title="Add Data" />
+    <div className="min-h-screen bg-background">
+      <Header title="Add Data" description="Add new data points to your datasets" />
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Add Data</h1>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-700 mb-6">
-            Welcome, {user?.email}
-          </p>
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6">Add New Data Point</h1>
+          
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-800">{error}</p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-green-800">{success}</p>
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="dataset" className="block text-sm font-medium text-gray-700 mb-1">
-                Select Dataset
+              <label htmlFor="dataset" className="block text-sm font-medium text-gray-700 mb-2">
+                Dataset
               </label>
               <select
                 id="dataset"
                 value={selectedDataset}
-                onChange={(e) => {
-                  if (e.target.value === 'create') {
-                    router.push('/manage_datasets')
-                  } else {
-                    setSelectedDataset(e.target.value)
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                onChange={(e) => setSelectedDataset(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">Select a dataset</option>
@@ -139,56 +134,42 @@ export default function AddDataPage() {
                     {dataset.name}
                   </option>
                 ))}
-                <option value="create" className="text-indigo-600 font-medium">+ Create dataset</option>
               </select>
             </div>
 
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-                Data Point Content
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                Content
               </label>
               <textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter your data point content here..."
+                placeholder="Enter the content for this data point..."
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-1">
-                Label (Answer)
+              <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-2">
+                Label (Optional)
               </label>
               <input
                 type="text"
                 id="label"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter the answer/label..."
-                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter a label for this data point..."
               />
             </div>
 
-            {error && (
-              <div className="text-red-600 text-sm">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="text-green-600 text-sm">
-                {success}
-              </div>
-            )}
-
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              disabled={submitting || !selectedDataset || !content.trim()}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Adding...' : 'Add Data Point'}
             </button>
@@ -196,5 +177,13 @@ export default function AddDataPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AddDataPage() {
+  return (
+    <ProtectedRoute>
+      <AddDataPageContent />
+    </ProtectedRoute>
   )
 }

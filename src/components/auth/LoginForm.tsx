@@ -13,7 +13,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({
-  redirectTo = '/dashboard',
+  redirectTo = '/study',
   onSuccess,
   className = '',
   message

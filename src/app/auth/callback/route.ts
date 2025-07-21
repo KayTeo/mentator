@@ -13,5 +13,5 @@ export async function GET(request: Request) {
   }
   console.log('redirecting to dashboard')
   // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL('/dashboard', request.url))
+  return NextResponse.redirect(new URL('/study', request.url))
 } 

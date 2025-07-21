@@ -4,13 +4,11 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export function learning_algorithm(data_edges: Database['public']['Tables']['data_points']['Row'][]) {
 
   const return_data_edges: Database['public']['Tables']['data_points']['Row'][] = [];
-  console.log(data_edges);
   data_edges.forEach(data_edge => {
       // Weird fix for linter type error
       if (!data_edge.metadata || typeof data_edge.metadata !== 'object' || Array.isArray(data_edge.metadata)) {
           data_edge.metadata = {};
       }
-      console.log(data_edge);
       // Ensure last_studied is an object
       if (!('last_studied' in data_edge.metadata) || typeof data_edge.metadata.last_studied !== 'object' || data_edge.metadata.last_studied === null || Array.isArray(data_edge.metadata.last_studied)) {
           data_edge.metadata.last_studied = {};
@@ -34,13 +32,11 @@ export function learning_algorithm(data_edges: Database['public']['Tables']['dat
       const days_passed = Math.floor(
           (new Date().getTime() - new Date(String(data_edge.updated_at)).getTime()) / (1000 * 60 * 60 * 24)
       );
-      console.log(days_passed, 2**data_edge.metadata.number_of_times_studied - 1)
 
       if (
           days_passed > 2**data_edge.metadata.number_of_times_studied - 1 ||
           data_edge.metadata.loss_value > 0.5
       ) {
-          console.log("Pushing data edge", data_edge);
           return_data_edges.push(data_edge);
       }
   });
@@ -101,6 +97,7 @@ export async function fetchDueCards(
   supabase: SupabaseClient<Database>
 ): Promise<Database['public']['Tables']['data_points']['Row'][]> {
   try {
+    console.log("Fetching due cards for dataset", datasetId);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error('No authenticated user');
@@ -123,6 +120,7 @@ export async function fetchDueCards(
       `)
       .eq('dataset_id', datasetId);
 
+    console.log("Due cards", data);
     if (error) {
       throw new Error('Failed to fetch due cards');
     }
@@ -136,6 +134,7 @@ export async function fetchDueCards(
       
       // Apply learning algorithm to get cards that need reviewing
       const processedCards = learning_algorithm(dataPoints);
+      console.log("Processed cards", processedCards);
       return processedCards;
     }
 

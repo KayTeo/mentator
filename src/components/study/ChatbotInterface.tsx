@@ -4,20 +4,12 @@ import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/Button';
 import { useChat } from '@ai-sdk/react';
 import { Database } from '@/types/database';
+import { fetchDueCards, updateCardLoss } from '@/utils/assorted/helper';
+import { createClient } from '@/utils/supabase/client';
 
 interface ChatbotInterfaceProps {
   /** The current dataset ID being studied */
   datasetId: string;
-  /** The current card being studied */
-  currentCard: Database['public']['Tables']['data_points']['Row'] | null;
-  /** Whether we're waiting for the user to answer */
-  isWaitingForAnswer: boolean;
-  /** Current question index for tracking progress */
-  currentQuestionIndex: number;
-  /** Callback when user submits an answer */
-  onAnswerSubmit: (answer: string) => Promise<void>;
-  /** Whether the chat is currently loading */
-  isLoading?: boolean;
 }
 
 /**
@@ -33,15 +25,15 @@ interface ChatbotInterfaceProps {
  */
 export function ChatbotInterface({
   datasetId,
-  currentCard,
-  isWaitingForAnswer,
-  currentQuestionIndex,
-  onAnswerSubmit,
-  isLoading: externalLoading = false
 }: ChatbotInterfaceProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastAddedQuestionRef = useRef<number>(-1);
   const [chatState, setChatState] = useState<string>('asking');
+  const [isWaitingForAnswer, setIsWaitingForAnswer] = useState(false);
+
+  const [cards, setCards] = useState<Database['public']['Tables']['data_points']['Row'][]>([]);
+  const [currentCard, setCurrentCard] = useState<Database['public']['Tables']['data_points']['Row'] | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const supabase = createClient();
 
   // Initialize chat object
   const { messages, input, handleInputChange, setInput, isLoading: chatLoading, error, append } = useChat({
@@ -52,28 +44,44 @@ export function ChatbotInterface({
       content: currentCard ? currentCard.content : '',
       card_context: currentCard ? `Content: ${currentCard.content}\nLabel: ${currentCard.label}` : '',
     },
-    key: `${datasetId}-${currentQuestionIndex}` // Force reset when dataset or question changes
+    key: `${datasetId}` // Only reset when dataset changes, not on every question
   });
 
-  // Add question to chat when current card changes
+  // Initial load of cards
   useEffect(() => {
-    console.log('Send new question', currentCard, isWaitingForAnswer, lastAddedQuestionRef.current, currentQuestionIndex);
-    setChatState('asking');
-    if (currentCard && isWaitingForAnswer && lastAddedQuestionRef.current !== currentQuestionIndex) {
+    console.log("Dataset ID", datasetId);
+    const loadCards = async () => {
+
+      if (!datasetId) {
+        endStudy();
+        return;
+      }
+
+      const cardsHolder = await fetchDueCards(datasetId, supabase);
+      console.log("Cards holder", cardsHolder);
+      if (cardsHolder.length <= 0) {
+        console.log("No cards found");
+        endStudy();
+        return;
+      }
       append({
         role: 'assistant',
-        content: `**Question ${currentQuestionIndex + 1}:**\n\n${currentCard.content}`
-      });
-      lastAddedQuestionRef.current = currentQuestionIndex;
-    } else if (!isWaitingForAnswer && lastAddedQuestionRef.current !== -1) {
-      // Show completion message when study session is done
-      append({
-        role: 'assistant',
-        content: '🎉 Congratulations! You have completed all questions in this dataset. Great job!'
-      });
-      lastAddedQuestionRef.current = -1;
+        content: cardsHolder[0].content
+      })
+      setCurrentCard(cardsHolder[0]);
+      setCards(cardsHolder);
+      
+      setChatState('asking');
     }
-  }, [currentCard, currentQuestionIndex, append, isWaitingForAnswer]);
+    loadCards();
+  }, [datasetId, supabase, append]);
+
+
+  async function endStudy() {
+    setCurrentCard(null);
+    setCurrentQuestionIndex(0);
+    setChatState('asking');
+  }
 
   /**
    * Handles form submission for user answers
@@ -83,6 +91,7 @@ export function ChatbotInterface({
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const userAnswer = formData.get('user_answer') as string;
+    setIsWaitingForAnswer(true);
     
     if (userAnswer.trim() && currentCard) {
       setInput(userAnswer);
@@ -93,16 +102,57 @@ export function ChatbotInterface({
         role: 'user',
         content: `${userAnswer}`
       });
-
-      // Call parent's answer submission handler
-      await onAnswerSubmit(userAnswer);
       
       // Clear input for next question
       setInput('');
     }
+
+    if (!currentCard) return;
+    
+    try {
+      // Start the grade API call
+      const gradeResponse = await fetch('/api/grade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: userAnswer,
+          chat_state: 'grading',
+          card_context: currentCard.content,
+          content: currentCard.label,
+          userAnswer: userAnswer
+        }),
+      });
+      
+      const gradeData = await gradeResponse.json();
+      console.log("Grade is " + gradeData.message);
+      await updateCardLoss(gradeData.message, userAnswer, currentCard, supabase);
+    } catch (error) {
+      console.error('Error grading answer:', error);
+    }
+
+    // Transition to next question
+    if (currentQuestionIndex < cards.length) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentCard(cards[currentQuestionIndex]);
+
+      append({
+        role: 'assistant',
+        content: currentCard.content
+      })
+    } else {
+
+      endStudy()
+
+    }
+
+    setIsWaitingForAnswer(false);
+
+
   }
 
-  const isLoading = chatLoading || externalLoading;
+  const isLoading = chatLoading;
 
   return (
     <div className="border rounded-lg p-4 min-h-[400px] flex flex-col">
@@ -131,7 +181,7 @@ export function ChatbotInterface({
       </div>
       
       {/* Answer Input */}
-      {isWaitingForAnswer && currentCard && (
+      {!isWaitingForAnswer && currentCard && (
         <form className="flex gap-2 mt-auto" onSubmit={handleSubmitWrapper}>
           <input
             ref={inputRef}

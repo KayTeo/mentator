@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const { messages, chat_state, card_context, content } = await req.json();
 
     const systemPrompt = {
-        role: "system",
+        role: "system" as const,
         content: `You are a helpful AI tutor.
         This is the question: ${card_context || 'No specific question provided.'}. 
         This is the answer: ${content || 'No specific answer provided.'}.
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     if (latestUserMessage) messagesWithContext.push(latestUserMessage);
 
     // Use streamText to stream the response from the LLM
-    var result;
+    let result;
     if (chat_state === 'asking') {
    // Create a readable stream that follows AI SDK data stream protocol
         const stream = new ReadableStream({
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
             // Split the static text into chunks to simulate streaming
             const chunks = String('').split(' ');
             
-            chunks.forEach((chunk, index) => {
+            chunks.forEach((chunk) => {
                 // Format: 0:"text_content"\n (0 indicates text part)
                 const textPart = `0:${JSON.stringify(chunk + ' ')}\n`;
                 controller.enqueue(new TextEncoder().encode(textPart));

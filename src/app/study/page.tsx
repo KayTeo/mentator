@@ -5,10 +5,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Header } from "@/components/Header";
 import { ChatbotStudy } from './ChatbotStudy';
 import { NormalStudy } from './NormalStudy';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 type StudyMode = 'chat' | 'normal';
 
-export default function StudyPage() {
+/**
+ * Study page component that provides different study modes
+ * 
+ * This page is protected and requires authentication. Users can choose
+ * between normal study mode and chatbot study mode.
+ */
+function StudyPageContent() {
   const [studyMode, setStudyMode] = useState<StudyMode>('chat');
 
   return (
@@ -36,5 +43,13 @@ export default function StudyPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StudyPage() {
+  return (
+    <ProtectedRoute>
+      <StudyPageContent />
+    </ProtectedRoute>
   );
 }
