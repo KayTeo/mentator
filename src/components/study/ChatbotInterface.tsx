@@ -30,6 +30,7 @@ export function ChatbotInterface({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [isWaitingForAnswer, setIsWaitingForAnswer] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const [cards, setCards] = useState<Database['public']['Tables']['data_points']['Row'][]>([]);
   const [currentCard, setCurrentCard] = useState<Database['public']['Tables']['data_points']['Row'] | null>(null);
@@ -84,6 +85,13 @@ export function ChatbotInterface({
       endOfMessagesRef.current.scrollIntoView({ behavior: 'auto' });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (submitted) {
+      inputRef.current?.focus();
+      setSubmitted(false); // Reset for next submit
+    }
+  }, [submitted]);
 
 
   async function endStudy() {
@@ -144,23 +152,25 @@ export function ChatbotInterface({
     }
 
     // Transition to next question
-    if (currentQuestionIndex < cards.length) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setCurrentCard(cards[currentQuestionIndex]);
+    if (currentQuestionIndex < cards.length - 1) {
 
       append({
         role: 'assistant',
-        content: currentCard.content
+        content: cards[currentQuestionIndex + 1].content
       },
       {
         body: {
           chat_state: 'asking'
         }
       })
+      
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentCard(cards[currentQuestionIndex]);
     } else {
       endStudy()
     }
     setIsWaitingForAnswer(false);
+    setSubmitted(true);
   }
 
   const isLoading = chatLoading;
@@ -199,7 +209,7 @@ export function ChatbotInterface({
       </div>
       
       {/* Answer Input */}
-      {!isWaitingForAnswer && currentCard && (
+      {(
         <form ref={formRef} className="flex gap-2 mt-auto" onSubmit={handleSubmitWrapper}>
           <textarea
             ref={inputRef}
@@ -208,7 +218,6 @@ export function ChatbotInterface({
             placeholder="Type your answer here..."
             value={input}
             onChange={handleInputChange}
-            disabled={isLoading}
             autoComplete="off"
             autoFocus
             onKeyDown={(e) => {
@@ -219,11 +228,11 @@ export function ChatbotInterface({
             }}
           />
           <Button
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || isWaitingForAnswer}
             variant="primary"
             type="submit"
           >
-            {isLoading ? 'Grading...' : 'Submit Answer'}
+            {isLoading ? 'Grading...' : isWaitingForAnswer ? 'Waiting...' : 'Submit Answer'}
           </Button>
         </form>
       )}

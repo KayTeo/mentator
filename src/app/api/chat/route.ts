@@ -5,25 +5,6 @@ export async function POST(req: Request) {
 
     const { messages, chat_state, card_context } = await req.json();
 
-    const userAnswer = messages[messages.length - 1].content;
-    const systemPrompt = {
-        role: "system" as const,
-        content: `You are a helpful AI tutor.
-        This is the question: ${card_context || 'No specific question provided.'}. 
-        This is the answer: ${userAnswer || 'No specific answer provided.'}.
-        Use this context to provide accurate feedback about whether the user's
-        answer is correct or not.
-        If the answer is wrong, repeat the WHOLE answer provide a detailed explanation of why it is wrong.
-        Return the response in this format:
-        Feedback:
-        [Newline]
-        Grade: (from 1 to 100)
-        `
-    };
-
-    // Just send latest query
-    const messagesWithContext = [systemPrompt];
-
     // Use streamText to stream the response from the LLM
     let result;
     if (chat_state === 'asking') {
@@ -59,6 +40,27 @@ export async function POST(req: Request) {
             },
         });
     } else {
+
+        const userAnswer = messages[messages.length - 1].content;
+        const systemPrompt = {
+            role: "system" as const,
+            content: `You are a helpful AI tutor.
+            This is the question: ${card_context || 'No specific question provided.'}. 
+            This is the user's answer: ${userAnswer || 'No specific answer provided.'}.
+            Use this context to provide accurate feedback about whether the user's
+            answer is correct or not.
+            If the answer is wrong, repeat the WHOLE answer provide a detailed explanation of why it is wrong.
+            Return the response in this format:
+            Feedback:
+            [Newline]
+            Grade: (from 1 to 100)
+            `
+        };
+    
+        // Just send latest query
+        const messagesWithContext = [systemPrompt];
+    
+        console.log("Messages with context", systemPrompt);
         result = streamText({
             model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
             messages: messagesWithContext,
