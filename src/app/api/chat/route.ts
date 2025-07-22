@@ -1,10 +1,5 @@
 import { streamText } from 'ai';
-import { createDeepSeek } from '@ai-sdk/deepseek';
-
-const deepseek = createDeepSeek({
-    apiKey: process.env.DEEPSEEK_API_KEY ?? '',
-    baseURL: process.env.DEEPSEEK_BASE_URL ?? '',
-});
+import { groq } from '@ai-sdk/groq';
 
 export async function POST(req: Request) {
 
@@ -65,7 +60,7 @@ export async function POST(req: Request) {
         });
     } else {
         result = streamText({
-            model: deepseek('deepseek-chat'),
+            model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
             messages: messagesWithContext,
         });
         return result.toDataStreamResponse();

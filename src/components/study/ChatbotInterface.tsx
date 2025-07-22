@@ -27,13 +27,16 @@ interface ChatbotInterfaceProps {
 export function ChatbotInterface({
   datasetId,
 }: ChatbotInterfaceProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [isWaitingForAnswer, setIsWaitingForAnswer] = useState(false);
 
   const [cards, setCards] = useState<Database['public']['Tables']['data_points']['Row'][]>([]);
   const [currentCard, setCurrentCard] = useState<Database['public']['Tables']['data_points']['Row'] | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const supabase = createClient();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   // Initialize chat object
   const { messages, input, handleInputChange, isLoading: chatLoading, error, append } = useChat({
@@ -75,6 +78,12 @@ export function ChatbotInterface({
     }
     loadCards();
   }, [datasetId, supabase, append]);
+
+  useEffect(() => {
+    if (endOfMessagesRef.current) {
+      endOfMessagesRef.current.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [messages]);
 
 
   async function endStudy() {
@@ -158,7 +167,7 @@ export function ChatbotInterface({
 
   return (
     <div className="border rounded-lg p-4 min-h-[400px] flex flex-col">
-      <div className="flex-1 overflow-y-auto mb-4 space-y-4">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto mb-4 space-y-4">
         {messages.length === 0 ? (
           <p className="text-center text-gray-500">Start answering questions to see your progress!</p>
         ) : (
@@ -186,22 +195,28 @@ export function ChatbotInterface({
           ))
         )}
         {error && <div className="text-center text-red-500 text-sm">{error.message || String(error)}</div>}
+        <div ref={endOfMessagesRef} />
       </div>
       
       {/* Answer Input */}
       {!isWaitingForAnswer && currentCard && (
-        <form className="flex gap-2 mt-auto" onSubmit={handleSubmitWrapper}>
-          <input
+        <form ref={formRef} className="flex gap-2 mt-auto" onSubmit={handleSubmitWrapper}>
+          <textarea
             ref={inputRef}
-            type="text"
             name="user_answer"
-            className="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600"
+            className="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 resize-y min-h-[48px] max-h-40"
             placeholder="Type your answer here..."
             value={input}
             onChange={handleInputChange}
             disabled={isLoading}
             autoComplete="off"
             autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                formRef.current?.requestSubmit();
+              }
+            }}
           />
           <Button
             disabled={isLoading || !input.trim()}

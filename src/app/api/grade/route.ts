@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 
 const deepseek = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY ?? '',
-    baseURL: process.env.DEEPSEEK_BASE_URL ?? '',
+    apiKey: process.env.GROQ_API_KEY ?? '',
+    baseURL: process.env.GROQ_BASE_URL ?? '',
 });
 
 export async function POST(req: Request) {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
                 D being incorrect with significant room for improvement compared with the correct answer.
                 F being completely incorrect with complete room for improvement compared with the correct answer.`
             }],
-            model: "deepseek-chat",
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
             stream: false
           });
 
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error) {
-        console.error('Error calling DeepSeek API:', error);
+        console.error('Error calling LLM API:', error);
         return new Response(JSON.stringify({
             error: 'Failed to process request'
         }), {
