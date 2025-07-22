@@ -28,6 +28,12 @@ export function ChatbotStudy() {
   }, []);
 
   useEffect(() => {
+    if (selectedDataset) {
+      localStorage.setItem('selectedDataset', selectedDataset);
+    }
+  }, [selectedDataset]);
+
+  useEffect(() => {
     const loadDatasets = async () => {
       if (!user) return;
       

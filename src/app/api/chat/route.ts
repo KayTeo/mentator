@@ -7,13 +7,16 @@ const deepseek = createDeepSeek({
 });
 
 export async function POST(req: Request) {
+
+    // messages field is legacy, we don't use it. 
     const { messages, chat_state, card_context, content } = await req.json();
 
+    const userAnswer = messages[messages.length - 1].content;
     const systemPrompt = {
         role: "system" as const,
         content: `You are a helpful AI tutor.
         This is the question: ${card_context || 'No specific question provided.'}. 
-        This is the answer: ${content || 'No specific answer provided.'}.
+        This is the answer: ${userAnswer || 'No specific answer provided.'}.
         Use this context to provide accurate feedback about whether the user's
         answer is correct or not.
         If the answer is wrong, repeat the WHOLE answer provide a detailed explanation of why it is wrong.
@@ -28,14 +31,15 @@ export async function POST(req: Request) {
     // const messagesWithContext = [systemPrompt, ...messages];
 
     // Just send latest query
-    const latestUserMessage = messages?.length ? messages[messages.length - 1] : null;
+    // const latestUserMessage = messages?.length ? messages[messages.length - 1] : null;
     const messagesWithContext = [systemPrompt];
-    if (latestUserMessage) messagesWithContext.push(latestUserMessage);
-
+    //console.log("Messages with context", messagesWithContext);
+    console.log("Chat state", chat_state);
     // Use streamText to stream the response from the LLM
     let result;
     if (chat_state === 'asking') {
-   // Create a readable stream that follows AI SDK data stream protocol
+
+    // Create a readable stream that follows AI SDK data stream protocol
         const stream = new ReadableStream({
             start(controller) {
             // Split the static text into chunks to simulate streaming

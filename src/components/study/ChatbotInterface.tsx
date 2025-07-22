@@ -27,7 +27,6 @@ export function ChatbotInterface({
   datasetId,
 }: ChatbotInterfaceProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [chatState, setChatState] = useState<string>('asking');
   const [isWaitingForAnswer, setIsWaitingForAnswer] = useState(false);
 
   const [cards, setCards] = useState<Database['public']['Tables']['data_points']['Row'][]>([]);
@@ -36,11 +35,10 @@ export function ChatbotInterface({
   const supabase = createClient();
 
   // Initialize chat object
-  const { messages, input, handleInputChange, setInput, isLoading: chatLoading, error, append } = useChat({
+  const { messages, input, handleInputChange, isLoading: chatLoading, error, append } = useChat({
     api: '/api/chat',
     body: {
       dataset_id: datasetId,
-      chat_state: chatState,
       content: currentCard ? currentCard.content : '',
       card_context: currentCard ? `Content: ${currentCard.content}\nLabel: ${currentCard.label}` : '',
     },
@@ -49,7 +47,6 @@ export function ChatbotInterface({
 
   // Initial load of cards
   useEffect(() => {
-    console.log("Dataset ID", datasetId);
     const loadCards = async () => {
 
       if (!datasetId) {
@@ -58,7 +55,6 @@ export function ChatbotInterface({
       }
 
       const cardsHolder = await fetchDueCards(datasetId, supabase);
-      console.log("Cards holder", cardsHolder);
       if (cardsHolder.length <= 0) {
         console.log("No cards found");
         endStudy();
@@ -67,11 +63,14 @@ export function ChatbotInterface({
       append({
         role: 'assistant',
         content: cardsHolder[0].content
+      },
+      {
+        body: {
+          chat_state: 'asking'
+        }
       })
       setCurrentCard(cardsHolder[0]);
       setCards(cardsHolder);
-      
-      setChatState('asking');
     }
     loadCards();
   }, [datasetId, supabase, append]);
@@ -80,7 +79,6 @@ export function ChatbotInterface({
   async function endStudy() {
     setCurrentCard(null);
     setCurrentQuestionIndex(0);
-    setChatState('asking');
   }
 
   /**
@@ -94,17 +92,20 @@ export function ChatbotInterface({
     setIsWaitingForAnswer(true);
     
     if (userAnswer.trim() && currentCard) {
-      setInput(userAnswer);
 
       // Add user's answer to the chat
-      setChatState('grading');
       await append({
         role: 'user',
         content: `${userAnswer}`
-      });
+      },
+      {
+        body: {
+          chat_state: 'grading',
+          card_context: currentCard.content
+        }
+      }
+    );
       
-      // Clear input for next question
-      setInput('');
     }
 
     if (!currentCard) return;
@@ -140,16 +141,16 @@ export function ChatbotInterface({
       append({
         role: 'assistant',
         content: currentCard.content
+      },
+      {
+        body: {
+          chat_state: 'asking'
+        }
       })
     } else {
-
       endStudy()
-
     }
-
     setIsWaitingForAnswer(false);
-
-
   }
 
   const isLoading = chatLoading;
