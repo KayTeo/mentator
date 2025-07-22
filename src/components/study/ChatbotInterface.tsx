@@ -6,6 +6,7 @@ import { useChat } from '@ai-sdk/react';
 import { Database } from '@/types/database';
 import { fetchDueCards, updateCardLoss } from '@/utils/assorted/helper';
 import { createClient } from '@/utils/supabase/client';
+import { MemoizedMarkdown } from './memoized-markdown';
 
 interface ChatbotInterfaceProps {
   /** The current dataset ID being studied */
@@ -170,7 +171,13 @@ export function ChatbotInterface({
               }>
                 {msg.parts.map((part, i) => {
                   if (part.type === 'text') {
-                    return <span key={`${msg.id}-${i}`}>{part.text}</span>;
+                    return (
+                      <MemoizedMarkdown
+                        key={`${msg.id}-${i}`}
+                        content={part.text}
+                        id={`${msg.id}-${i}`}
+                      />
+                    );
                   }
                   return null;
                 })}

@@ -8,8 +8,7 @@ const deepseek = createDeepSeek({
 
 export async function POST(req: Request) {
 
-    // messages field is legacy, we don't use it. 
-    const { messages, chat_state, card_context, content } = await req.json();
+    const { messages, chat_state, card_context } = await req.json();
 
     const userAnswer = messages[messages.length - 1].content;
     const systemPrompt = {
@@ -26,15 +25,10 @@ export async function POST(req: Request) {
         Grade: (from 1 to 100)
         `
     };
-    
-    // Combine system prompt with user messages
-    // const messagesWithContext = [systemPrompt, ...messages];
 
     // Just send latest query
-    // const latestUserMessage = messages?.length ? messages[messages.length - 1] : null;
     const messagesWithContext = [systemPrompt];
-    //console.log("Messages with context", messagesWithContext);
-    console.log("Chat state", chat_state);
+
     // Use streamText to stream the response from the LLM
     let result;
     if (chat_state === 'asking') {
