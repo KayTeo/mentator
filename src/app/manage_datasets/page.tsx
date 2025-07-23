@@ -6,6 +6,7 @@ import { Database } from '@/types/database'
 import { Header } from '@/components/Header'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation';
 
 type Dataset = Database['public']['Tables']['datasets']['Row']
 
@@ -23,6 +24,7 @@ function ManageDatasetsPageContent() {
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
   const { user } = useAuth()
+  const router = useRouter();
 
   useEffect(() => {
     const fetchDatasets = async () => {
@@ -61,10 +63,12 @@ function ManageDatasetsPageContent() {
     setError(null)
 
     try {
+      console.log("Creating dataset", newDatasetName.trim(), newDatasetDescription.trim())
       const { data: dataset, error } = await supabase
         .from('datasets')
         .insert({
           name: newDatasetName.trim(),
+          user_id: user?.id,
           description: newDatasetDescription.trim() || null
         })
         .select()
@@ -169,7 +173,11 @@ function ManageDatasetsPageContent() {
                 </div>
               ) : (
                 datasets.map((dataset) => (
-                  <div key={dataset.id} className="p-6 flex items-center justify-between">
+                  <div
+                    key={dataset.id}
+                    className="p-6 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition"
+                    onClick={() => router.push(`/manage_deck?id=${dataset.id}`)}
+                  >
                     <div className="flex-1">
                       <h3 className="text-lg font-medium text-gray-900">{dataset.name}</h3>
                       {dataset.description && (
@@ -181,7 +189,7 @@ function ManageDatasetsPageContent() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleDeleteDataset(dataset.id)}
+                        onClick={e => { e.stopPropagation(); handleDeleteDataset(dataset.id); }}
                         className="text-red-600 hover:text-red-800 text-sm font-medium"
                       >
                         Delete
