@@ -17,7 +17,7 @@ export async function POST(req: Request) {
                 content: `This is the question: ${card_context}.
                 Compare correct answer: ${content}
                 with the user answer: ${userAnswer}.
-                Return a just a letter grade (A, B, C, D, F).
+                Return a JUST a letter grade (A, B, C, D, F). Do not include any other text.
                 A being correct compared with the correct answer. 
                 B being somewhat correct with little room for improvement compared with the correct answer.
                 C being neither with some room for improvement compared with the correct answer.

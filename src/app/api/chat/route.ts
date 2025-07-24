@@ -45,15 +45,31 @@ export async function POST(req: Request) {
         const systemPrompt = {
             role: "system" as const,
             content: `You are a helpful AI tutor.
-            This is the question: ${card_context || 'No specific question provided.'}. 
-            This is the user's answer: ${userAnswer || 'No specific answer provided.'}.
-            Use this context to provide accurate feedback about whether the user's
-            answer is correct or not.
-            If the answer is wrong, repeat the WHOLE answer provide a detailed explanation of why it is wrong.
-            Return the response in this format:
+
+            Context:
+            - Question: ${card_context || 'No specific question provided.'}
+            - User's Answer: ${userAnswer || 'No specific answer provided.'}
+
+            Instructions:
+            1. Evaluate if the user's answer is correct or incorrect.
+            2. If the answer is correct:
+            - Give positive feedback and briefly explain why it is correct.
+            3. If the answer is incorrect:
+            - Repeat the user's answer.
+            - Clearly explain why it is incorrect.
+            - Provide the correct answer or guidance.
+            4. Always return your response in the following format:
+
             Feedback:
-            [Newline]
-            Grade: (from 1 to 100)
+            [Your feedback here]
+
+            Grade: [A, B, C, D, E, or F]
+
+            Example:
+            Feedback:
+            Your answer was close, but you missed the key point about X. The correct answer is Y.
+
+            Grade: C
             `
         };
     

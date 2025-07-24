@@ -7,6 +7,7 @@ import { Database } from '@/types/database';
 import { fetchDueCards, updateCardLoss } from '@/utils/assorted/helper';
 import { createClient } from '@/utils/supabase/client';
 import { MemoizedMarkdown } from './memoized-markdown';
+import { UIMessage } from 'ai';
 
 interface ChatbotInterfaceProps {
   /** The current dataset ID being studied */
@@ -38,6 +39,9 @@ export function ChatbotInterface({
   const supabase = createClient();
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const [waitingForGrade, setWaitingForGrade] = useState(false);
+  const [lastUserAnswer, setLastUserAnswer] = useState('');
+  const [studyComplete, setStudyComplete] = useState(false);
 
   // Initialize chat object
   const { messages, input, handleInputChange, isLoading: chatLoading, error, append } = useChat({
@@ -54,8 +58,9 @@ export function ChatbotInterface({
   useEffect(() => {
     const loadCards = async () => {
 
+      // This seems to be triggering 2 times per new load. Not breaking but annoying.
       if (!datasetId) {
-        endStudy();
+        console.log("No dataset ID");
         return;
       }
 
@@ -93,10 +98,31 @@ export function ChatbotInterface({
     }
   }, [submitted]);
 
+  useEffect(() => {
+    if (!waitingForGrade) return;
 
-  async function endStudy() {
-    setCurrentCard(null);
+    // Find the last assistant message after the user's answer
+    const lastGrade = getLastLLMGrade(messages);
+    console.log("Last grade is " + lastGrade);
+    console.log("Current card is " + currentCard);
+    if (lastGrade && currentCard) {
+      console.log("Updating card loss in grading thing");
+      // You may want to also store the last user answer in state to use here
+      updateCardLoss(lastGrade, lastUserAnswer, currentCard, supabase);
+      setWaitingForGrade(false);
+
+      // Transition to next question, etc.
+      // ... (move to next card, reset input, etc.)
+    }
+  }, [messages, waitingForGrade]);
+
+
+  function endStudy() {
+    console.log("Ending study");
+    // setCurrentCard(null);
     setCurrentQuestionIndex(0);
+    setCards([]);
+    setStudyComplete(true);
   }
 
   /**
@@ -128,28 +154,8 @@ export function ChatbotInterface({
 
     if (!currentCard) return;
     
-    try {
-      // Start the grade API call
-      const gradeResponse = await fetch('/api/grade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: userAnswer,
-          chat_state: 'grading',
-          card_context: currentCard.content,
-          content: currentCard.label,
-          userAnswer: userAnswer
-        }),
-      });
-      
-      const gradeData = await gradeResponse.json();
-      console.log("Grade is " + gradeData.message);
-      await updateCardLoss(gradeData.message, userAnswer, currentCard, supabase);
-    } catch (error) {
-      console.error('Error grading answer:', error);
-    }
+    setLastUserAnswer(userAnswer);
+    setWaitingForGrade(true);
 
     // Transition to next question
     if (currentQuestionIndex < cards.length - 1) {
@@ -167,6 +173,7 @@ export function ChatbotInterface({
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setCurrentCard(cards[currentQuestionIndex]);
     } else {
+      console.log("Ending submit study")
       endStudy()
     }
     setIsWaitingForAnswer(false);
@@ -174,6 +181,28 @@ export function ChatbotInterface({
   }
 
   const isLoading = chatLoading;
+
+  function getLastLLMGrade(messages: UIMessage[]) {
+    // 1. Find the last assistant message
+    const lastAssistantMsg = [...messages].reverse().find(msg => msg.role === 'assistant');
+    if (!lastAssistantMsg) return null;
+
+    // 2. Concatenate all text parts
+    const fullText = lastAssistantMsg.parts
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('');
+
+    // 3. Extract the last "Grade: ..." line (case-insensitive, trims whitespace)
+    const gradeMatch = fullText.match(/Grade:\s*([A-F][+-]?)/i);
+    if (gradeMatch) {
+      return gradeMatch[1].trim();
+    }
+
+    // Fallback: get the last non-empty line
+    const lines = fullText.trim().split('\n').filter(Boolean);
+    return lines.length > 0 ? lines[lines.length - 1] : null;
+  }
 
   return (
     <div className="border rounded-lg p-4 min-h-[400px] flex flex-col">
@@ -236,6 +265,7 @@ export function ChatbotInterface({
           </Button>
         </form>
       )}
+      {studyComplete && <div className="text-center text-green-600">Session complete! Well done!</div>}
     </div>
   );
 } 
