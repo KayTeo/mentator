@@ -8,6 +8,7 @@ import { fetchDueCards, updateCardLoss } from '@/utils/assorted/helper';
 import { createClient } from '@/utils/supabase/client';
 import { MemoizedMarkdown } from './memoized-markdown';
 import { UIMessage } from 'ai';
+import { LatexInputField } from './LatexInputField';
 
 interface ChatbotInterfaceProps {
   /** The current dataset ID being studied */
@@ -81,6 +82,7 @@ export function ChatbotInterface({
       })
       setCurrentCard(cardsHolder[0]);
       setCards(cardsHolder);
+      setStudyComplete(false);
     }
     loadCards();
   }, [datasetId, supabase, append]);
@@ -132,7 +134,9 @@ export function ChatbotInterface({
   async function handleSubmitWrapper(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const userAnswer = formData.get('user_answer') as string;
+
+    // Insert $$ so katex will render the latex
+    const userAnswer = `$$${formData.get('user_answer') as string}$$`;
     setIsWaitingForAnswer(true);
     
     if (userAnswer.trim() && currentCard) {
@@ -236,19 +240,16 @@ export function ChatbotInterface({
         {error && <div className="text-center text-red-500 text-sm">{error.message || String(error)}</div>}
         <div ref={endOfMessagesRef} />
       </div>
-      
       {/* Answer Input */}
       {(
         <form ref={formRef} className="flex gap-2 mt-auto" onSubmit={handleSubmitWrapper}>
-          <textarea
-            ref={inputRef}
-            name="user_answer"
-            className="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 resize-y min-h-[48px] max-h-40"
-            placeholder="Type your answer here..."
+          <LatexInputField
             value={input}
             onChange={handleInputChange}
+            name="user_answer"
             autoComplete="off"
             autoFocus
+            className="flex-1 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 resize-y min-h-[48px] max-h-40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
