@@ -136,7 +136,8 @@ export function ChatbotInterface({
     const formData = new FormData(e.target as HTMLFormElement);
 
     // Insert $$ so katex will render the latex
-    const userAnswer = `$$${formData.get('user_answer') as string}$$`;
+    var userAnswer = `$$${formData.get('user_answer') as string}$$`;
+    userAnswer = userAnswer.replace(/ /g, '\\ ');
     setIsWaitingForAnswer(true);
     
     if (userAnswer.trim() && currentCard) {

@@ -17,6 +17,7 @@ export const LatexInputField: React.FC<LatexInputFieldProps> = ({
 
   useEffect(() => {
     try {
+      value = value.replace(/ /g, '\\ ');
       setRenderedLatex(
         katex.renderToString(value, {
           throwOnError: false,
