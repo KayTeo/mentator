@@ -45,7 +45,7 @@ export function ChatbotInterface({
   const [studyComplete, setStudyComplete] = useState(false);
 
   // Initialize chat object
-  const { messages, input, handleInputChange, isLoading: chatLoading, error, append } = useChat({
+  const { messages, input, handleInputChange, isLoading: chatLoading, error, append, setInput } = useChat({
     api: '/api/chat',
     body: {
       dataset_id: datasetId,
@@ -103,18 +103,24 @@ export function ChatbotInterface({
   useEffect(() => {
     if (!waitingForGrade) return;
 
-    // Find the last assistant message after the user's answer
     const lastGrade = getLastLLMGrade(messages);
-    console.log("Last grade is " + lastGrade);
-    console.log("Current card is " + currentCard);
     if (lastGrade && currentCard) {
-      console.log("Updating card loss in grading thing");
-      // You may want to also store the last user answer in state to use here
       updateCardLoss(lastGrade, lastUserAnswer, currentCard, supabase);
       setWaitingForGrade(false);
 
-      // Transition to next question, etc.
-      // ... (move to next card, reset input, etc.)
+      // Transition to next question
+      if (currentQuestionIndex < cards.length - 1) {
+        append({
+          role: 'assistant',
+          content: cards[currentQuestionIndex + 1].content
+        }, {
+          body: { chat_state: 'asking' }
+        });
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setCurrentCard(cards[currentQuestionIndex + 1]);
+      } else {
+        endStudy();
+      }
     }
   }, [messages, waitingForGrade]);
 
@@ -161,28 +167,9 @@ export function ChatbotInterface({
     
     setLastUserAnswer(userAnswer);
     setWaitingForGrade(true);
-
-    // Transition to next question
-    if (currentQuestionIndex < cards.length - 1) {
-
-      append({
-        role: 'assistant',
-        content: cards[currentQuestionIndex + 1].content
-      },
-      {
-        body: {
-          chat_state: 'asking'
-        }
-      })
-      
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setCurrentCard(cards[currentQuestionIndex]);
-    } else {
-      console.log("Ending submit study")
-      endStudy()
-    }
     setIsWaitingForAnswer(false);
     setSubmitted(true);
+    setInput('');
   }
 
   const isLoading = chatLoading;
