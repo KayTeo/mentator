@@ -23,6 +23,8 @@ export const LatexInputField: React.FC<LatexInputFieldProps> = ({
         katex.renderToString(value, {
           throwOnError: false,
           displayMode: true,
+          strict: false, // Disable strict mode to allow Unicode characters
+          trust: true, // Allow more permissive parsing
         })
       );
       setLatexError(null);

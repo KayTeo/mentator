@@ -3,7 +3,7 @@ import { groq } from '@ai-sdk/groq';
 
 export async function POST(req: Request) {
 
-    const { messages, chat_state, card_context } = await req.json();
+    const { messages, chat_state, card_context, card_correct_answer } = await req.json();
 
     // Use streamText to stream the response from the LLM
     let result;
@@ -48,14 +48,16 @@ export async function POST(req: Request) {
 
             Context:
             - Question: ${card_context || 'No specific question provided.'}
+            - Correct Answer: ${card_correct_answer || 'No specific answer provided.'}
             - User's Answer: ${userAnswer || 'No specific answer provided.'}
 
             Instructions:
-            1. Evaluate if the user's answer is correct or incorrect.
+            1. Evaluate if the user's answer is correct or incorrect against the correct answer.
             2. If the answer is correct:
             - Give positive feedback and briefly explain why it is correct.
             3. If the answer is incorrect:
             - Repeat the user's answer.
+            - Repeat the correct answer.
             - Clearly explain why it is incorrect.
             - Provide the correct answer or guidance.
             4. Always return your response in the following format:
@@ -67,7 +69,9 @@ export async function POST(req: Request) {
 
             Example:
             Feedback:
-            Your answer was close, but you missed the key point about X. The correct answer is Y.
+            Your answer was close, but you missed the key point about X. 
+            
+            The correct answer is [full answer which you would give an A to, considering the correct answer too].
 
             Grade: C
             `
@@ -76,7 +80,6 @@ export async function POST(req: Request) {
         // Just send latest query
         const messagesWithContext = [systemPrompt];
     
-        console.log("Messages with context", systemPrompt);
         result = streamText({
             model: groq("meta-llama/llama-4-scout-17b-16e-instruct"),
             messages: messagesWithContext,

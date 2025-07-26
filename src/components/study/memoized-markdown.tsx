@@ -15,7 +15,13 @@ const MemoizedMarkdownBlock = memo(
     return (
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[
+          [rehypeKatex, {
+            strict: false, // Disable strict mode to allow Unicode characters
+            trust: true, // Allow more permissive parsing
+            throwOnError: false, // Don't throw on errors
+          }]
+        ]}
       >
         {content}
       </ReactMarkdown>
