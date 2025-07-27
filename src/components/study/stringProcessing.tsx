@@ -3,7 +3,7 @@ export function processString(input: string){
 
     var processedString = input;
 
-    processedString = sanitizeLatexInput(processedString);
+    // processedString = sanitizeLatexInput(processedString);
     
     // Insert $$ so katex will render the latex
     
@@ -11,6 +11,10 @@ export function processString(input: string){
     // However, problem with rendering curly brackets. For now, user manaully enters $ $
     // processedString = `${processedString}`;
     // processedString = processedString.replace(/ /g, '\\ ');
+
+    // Fix for numbers followed by periods at the beginning of lines
+    // This prevents ReactMarkdown from interpreting them as ordered list markers
+    processedString = processedString.replace(/^(\d+)\./gm, '$1\\.');
 
     return processedString;
 }

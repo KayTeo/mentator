@@ -39,7 +39,7 @@ export const LatexInputField: React.FC<LatexInputFieldProps> = ({
       />
       <div
         ref={renderedLatexRef}
-        className="mt-2 p-2 bg-gray-50 border rounded min-h-[2em] overflow-x-auto whitespace-nowrap"
+        className="mt-2 p-2 bg-gray-50 border rounded min-h-[2em] overflow-x-auto"
       >
         <ReactMarkdown
           remarkPlugins={[remarkMath]}
