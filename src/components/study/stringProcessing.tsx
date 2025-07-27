@@ -12,6 +12,10 @@ export function processString(input: string){
     // processedString = `${processedString}`;
     // processedString = processedString.replace(/ /g, '\\ ');
 
+    // Convert single newlines to markdown line breaks (two spaces + newline)
+    // This ensures newlines render properly in ReactMarkdown
+    processedString = processedString.replace(/\n(?!\n)/g, '  \n');
+
     // Fix for numbers followed by periods at the beginning of lines
     // This prevents ReactMarkdown from interpreting them as ordered list markers
     processedString = processedString.replace(/^(\d+)\./gm, '$1\\.');
