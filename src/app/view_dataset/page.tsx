@@ -13,6 +13,9 @@ type DatasetDataPoint = Database['public']['Tables']['dataset_data_points']['Row
   data_points: Database['public']['Tables']['data_points']['Row'];
 };
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient();
+
 /**
  * View dataset page component
  * 
@@ -26,7 +29,6 @@ function ViewDatasetPageContent() {
   const [dataPoints, setDataPoints] = useState<DatasetDataPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const supabase = createClient();
   const { user } = useAuth();
 
   // Fetch all datasets
@@ -48,7 +50,7 @@ function ViewDatasetPageContent() {
     };
 
     fetchDatasets();
-  }, [user, supabase]);
+  }, [user]);
 
   // Fetch data points for selected dataset
   useEffect(() => {
@@ -88,7 +90,7 @@ function ViewDatasetPageContent() {
     };
 
     fetchDataPoints();
-  }, [searchParams, user, supabase]);
+  }, [searchParams, user]);
 
   const handleDatasetChange = (datasetId: string) => {
     const url = new URL(window.location.href);

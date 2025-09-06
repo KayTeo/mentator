@@ -8,6 +8,9 @@ import { fetchDatasets } from '@/utils/assorted/helper';
 import { ChatbotInterface } from '@/components/study/ChatbotInterface';
 import { useAuth } from '@/hooks/useAuth';
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient();
+
 /**
  * Chatbot study mode component
  * 
@@ -18,7 +21,6 @@ export function ChatbotStudy() {
   const [datasets, setDatasets] = useState<Database['public']['Tables']['datasets']['Row'][]>([]);
   const [selectedDataset, setSelectedDataset] = useState<string>('');
   const [loadingDatasets, setLoadingDatasets] = useState(true);
-  const supabase = createClient();
   const { user } = useAuth();
 
   // On mount, try to load persisted dataset
@@ -52,8 +54,7 @@ export function ChatbotStudy() {
       setLoadingDatasets(false);
     };
     loadDatasets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, supabase]);
+  }, [user, selectedDataset]);
 
   return (
     <div className="p-6">

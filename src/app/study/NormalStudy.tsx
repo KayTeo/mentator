@@ -10,6 +10,9 @@ import { useAuth } from '@/hooks/useAuth';
 type DataPoint = Database['public']['Tables']['data_points']['Row'];
 type Dataset = Database['public']['Tables']['datasets']['Row'];
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient();
+
 /**
  * Normal study mode component
  * 
@@ -24,7 +27,6 @@ export function NormalStudy() {
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
   const { user } = useAuth();
 
   // Fetch available datasets
@@ -46,7 +48,7 @@ export function NormalStudy() {
     }
 
     loadDatasets();
-  }, [user, supabase]);
+  }, [user]);
 
   // Fetch due cards when dataset changes
   useEffect(() => {
@@ -64,7 +66,7 @@ export function NormalStudy() {
     }
 
     loadDueCards();
-  }, [selectedDatasetId, user, supabase]);
+  }, [selectedDatasetId, user]);
 
   const handleReveal = () => {
     setIsRevealed(true);

@@ -11,6 +11,9 @@ import { UIMessage } from 'ai';
 import { LatexInputField } from './LatexInputField';
 import { processString } from './stringProcessing';
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient();
+
 interface ChatbotInterfaceProps {
   /** The current dataset ID being studied */
   datasetId: string;
@@ -38,7 +41,6 @@ export function ChatbotInterface({
   const [cards, setCards] = useState<Database['public']['Tables']['data_points']['Row'][]>([]);
   const [currentCard, setCurrentCard] = useState<Database['public']['Tables']['data_points']['Row'] | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const supabase = createClient();
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const [waitingForGrade, setWaitingForGrade] = useState(false);
@@ -86,7 +88,7 @@ export function ChatbotInterface({
       setStudyComplete(false);
     }
     loadCards();
-  }, [datasetId, supabase, append]);
+  }, [datasetId, append]);
 
   useEffect(() => {
     if (endOfMessagesRef.current) {

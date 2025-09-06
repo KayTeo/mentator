@@ -10,6 +10,9 @@ import { useRouter } from 'next/navigation';
 
 type Dataset = Database['public']['Tables']['datasets']['Row']
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient()
+
 /**
  * Manage datasets page component
  * 
@@ -22,7 +25,6 @@ function ManageDatasetsPageContent() {
   const [newDatasetDescription, setNewDatasetDescription] = useState('')
   const [creatingDataset, setCreatingDataset] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
   const { user } = useAuth()
   const router = useRouter();
 
@@ -53,7 +55,7 @@ function ManageDatasetsPageContent() {
     }
 
     fetchDatasets()
-  }, [user, supabase])
+  }, [user])
 
   const handleCreateDataset = async (e: React.FormEvent) => {
     e.preventDefault()

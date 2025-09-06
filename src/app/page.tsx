@@ -6,10 +6,12 @@ import LoginForm from '@/components/auth/LoginForm'
 import SignUpForm from '@/components/auth/SignUpForm'
 import { createClient } from '@/utils/supabase/client'
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient()
+
 export default function LandingPage() {
   const [isLogin, setIsLogin] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     const checkUser = async () => {

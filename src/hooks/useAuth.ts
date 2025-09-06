@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 
+// Create Supabase client once outside hook to prevent re-creation on every render
+const supabase = createClient();
+
 interface UseAuthOptions {
   /** Whether to redirect to login if user is not authenticated */
   requireAuth?: boolean;
@@ -49,7 +52,6 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     let mounted = true;
@@ -116,7 +118,7 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [requireAuth, redirectTo, redirectIfAuthenticated, redirectAuthenticatedTo, router, supabase.auth]);
+  }, [requireAuth, redirectTo, redirectIfAuthenticated, redirectAuthenticatedTo, router]);
 
   const signOut = async () => {
     try {

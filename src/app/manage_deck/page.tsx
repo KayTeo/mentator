@@ -18,6 +18,9 @@ type DatasetDataPoint = Database['public']['Tables']['dataset_data_points']['Row
   data_points: DataPoint;
 };
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient();
+
 /**
  * Manage Deck page component
  *
@@ -36,13 +39,12 @@ function ManageDeckPageContent() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const supabase = createClient();
   const { user } = useAuth();
+  const datasetId = searchParams.get('id');
 
   // Fetch dataset and data points
   useEffect(() => {
     const fetchData = async () => {
-      const datasetId = searchParams.get('id');
       if (!datasetId || !user) return;
       setLoading(true);
       try {
@@ -69,7 +71,7 @@ function ManageDeckPageContent() {
       }
     };
     fetchData();
-  }, [searchParams, user, supabase]);
+  }, [user]);
 
   // Start editing a data point
   const handleEdit = (dp: DatasetDataPoint) => {

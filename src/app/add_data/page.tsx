@@ -9,6 +9,9 @@ import { useAuth } from '@/hooks/useAuth'
 
 type Dataset = Database['public']['Tables']['datasets']['Row']
 
+// Create Supabase client once outside component to prevent re-creation on every render
+const supabase = createClient()
+
 /**
  * Add data page component
  * 
@@ -23,7 +26,6 @@ function AddDataPageContent() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const supabase = createClient()
   const { user } = useAuth()
 
   useEffect(() => {
@@ -54,7 +56,7 @@ function AddDataPageContent() {
     }
 
     fetchDatasets()
-  }, [user, supabase])
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
